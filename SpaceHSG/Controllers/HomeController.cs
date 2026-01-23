@@ -314,19 +314,12 @@ namespace SpaceHSG.Controllers
                     return BadRequest(new { success = false, message = "Cannot delete root directory." });
                 }
 
-                // Decode path - handle double encoding if needed
+                // Direct path - no URL encoding/decoding needed since we're using POST body
                 var decodedPath = path;
-                try
-                {
-                    decodedPath = Uri.UnescapeDataString(path);
-                }
-                catch
-                {
-                    // If decode fails, use original path
-                }
-
-                // Normalize path separators
-                decodedPath = decodedPath.Replace('/', System.IO.Path.DirectorySeparatorChar);
+                
+                // Normalize path separators to system separator
+                decodedPath = decodedPath.Replace('/', System.IO.Path.DirectorySeparatorChar)
+                                         .Replace('\\', System.IO.Path.DirectorySeparatorChar);
                 
                 var fullPath = System.IO.Path.Combine(basePath, decodedPath);
                 fullPath = System.IO.Path.GetFullPath(fullPath); // Normalize the path
@@ -341,22 +334,73 @@ namespace SpaceHSG.Controllers
                 // Check if it's a file or directory
                 if (System.IO.File.Exists(fullPath))
                 {
+                    // Remove read-only attribute if set
+                    var fileInfo = new System.IO.FileInfo(fullPath);
+                    if (fileInfo.IsReadOnly)
+                    {
+                        fileInfo.IsReadOnly = false;
+                    }
+                    
                     System.IO.File.Delete(fullPath);
                     return Ok(new { success = true, message = "File deleted successfully." });
                 }
                 else if (System.IO.Directory.Exists(fullPath))
                 {
+                    // Remove read-only attributes from all files in directory
+                    RemoveReadOnlyAttributes(fullPath);
+                    
                     System.IO.Directory.Delete(fullPath, true); // true = recursive delete
                     return Ok(new { success = true, message = "Folder deleted successfully." });
                 }
                 else
                 {
-                    return NotFound(new { success = false, message = $"File or folder not found. Path: {decodedPath}" });
+                    return NotFound(new { success = false, message = $"File or folder not found. Path: {fullPath}" });
                 }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return BadRequest(new { success = false, message = $"Access denied: {ex.Message}" });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, message = $"Delete error: {ex.Message}" });
+            }
+        }
+
+        // Helper method to remove read-only attributes
+        private void RemoveReadOnlyAttributes(string directoryPath)
+        {
+            try
+            {
+                var directory = new DirectoryInfo(directoryPath);
+                
+                // Remove read-only from directory itself
+                if ((directory.Attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    directory.Attributes &= ~FileAttributes.ReadOnly;
+                }
+
+                // Remove read-only from all files
+                foreach (var file in directory.GetFiles("*", SearchOption.AllDirectories))
+                {
+                    if (file.IsReadOnly)
+                    {
+                        file.IsReadOnly = false;
+                    }
+                }
+
+                // Remove read-only from all subdirectories
+                foreach (var subDir in directory.GetDirectories("*", SearchOption.AllDirectories))
+                {
+                    if ((subDir.Attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                    {
+                        subDir.Attributes &= ~FileAttributes.ReadOnly;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore errors in attribute removal
             }
         }
 

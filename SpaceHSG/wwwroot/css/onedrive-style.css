@@ -301,8 +301,8 @@ body {
 
 .fm-list-header {
     display: grid;
-    grid-template-columns: 40px 1fr 120px 100px 160px 160px;
-    gap: 16px;
+    grid-template-columns: 50px 50px 1fr 120px 100px 160px 160px;
+    gap: 12px;
     padding: 12px 20px;
     background: var(--bg-gray);
     border-bottom: 1px solid var(--border-color);
@@ -313,8 +313,8 @@ body {
 
 .fm-list-item {
     display: grid;
-    grid-template-columns: 40px 1fr 120px 100px 160px 160px;
-    gap: 16px;
+    grid-template-columns: 50px 50px 1fr 120px 100px 160px 160px;
+    gap: 12px;
     padding: 12px 20px;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
@@ -322,6 +322,10 @@ body {
     transition: background 0.15s ease;
     text-decoration: none;
     color: var(--text-primary);
+}
+
+.fm-list-item.selected {
+    background: var(--primary-blue-light);
 }
 
 .fm-list-item:hover {
@@ -472,7 +476,7 @@ body {
 @media (max-width: 768px) {
     .fm-list-header,
     .fm-list-item {
-        grid-template-columns: 40px 1fr 120px;
+        grid-template-columns: 50px 50px 1fr 120px;
     }
     
     .fm-list-type,
@@ -853,6 +857,65 @@ body {
     display: none;
     align-items: center;
     gap: 4px;
+}
+
+/* Checkbox for list items */
+.fm-list-checkbox-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.fm-list-item:hover .fm-list-checkbox-container {
+    opacity: 1;
+}
+
+.fm-list-item.selected .fm-list-checkbox-container {
+    opacity: 1;
+}
+
+.fm-list-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .fm-list-checkbox {
+    background: #1e1e1e;
+}
+
+.fm-list-checkbox:hover {
+    border-color: var(--primary-blue);
+}
+
+.fm-list-checkbox.checked {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.fm-list-checkbox.checked::after {
+    content: '✓';
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Hide actions by default, show only when selected */
+.fm-list-actions .fm-action-btn.delete-btn {
+    display: none;
+}
+
+.fm-list-item.selected .fm-list-actions .fm-action-btn.delete-btn {
+    display: inline-block;
 }
 
 /* Upload folder button */
