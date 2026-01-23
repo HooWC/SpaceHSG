@@ -1,172 +1,702 @@
 ﻿@{
-    ViewData["Title"] = "Company File Manager";
+    ViewData["Title"] = "Files - SpaceHSG";
 }
 
-<div class="container mt-4">
-    <h2 class="mb-4">📁 Company File Manager</h2>
+<!-- OneDrive Style CSS -->
+<link rel="stylesheet" href="~/css/onedrive-style.css" />
 
-    <!-- Path Display -->
-    <div class="alert alert-info">
-        <strong>Current Path:</strong> @ViewBag.BasePath
+<!-- Toast Container -->
+<div class="fm-toast-container" id="toastContainer"></div>
+
+<!-- Drop Overlay -->
+<div class="fm-drop-overlay" id="dropOverlay">
+    <div class="fm-drop-content">
+        <div class="fm-drop-icon">📁</div>
+        <div class="fm-drop-text">Drop files here</div>
+        <div class="fm-drop-hint">Release to upload your files</div>
+    </div>
+</div>
+
+<div class="file-manager-container">
+    <!-- Header -->
+    <div class="fm-header">
+        <h1 class="fm-title">
+            <div class="fm-title-icon">☁️</div>
+            SpaceHSG
+        </h1>
+        <div class="fm-toolbar">
+            <button class="fm-btn fm-btn-primary" onclick="document.getElementById('fileInput').click()">
+                <span class="fm-btn-icon">⬆️</span>
+                Upload
+            </button>
+            <button class="fm-btn" onclick="showCreateFolderModal()">
+                <span class="fm-btn-icon">➕</span>
+                New Folder
+            </button>
+            <button class="fm-btn" onclick="window.location.reload()">
+                <span class="fm-btn-icon">🔄</span>
+                Refresh
+            </button>
+            <button class="fm-theme-toggle" id="themeToggle" onclick="toggleTheme()">
+                <span id="themeIcon">🌙</span>
+            </button>
+            <div class="fm-view-toggle">
+                <button class="fm-view-btn active" id="viewGrid" onclick="switchView('grid')">
+                    <span>⊞</span>
+                </button>
+                <button class="fm-view-btn" id="viewList" onclick="switchView('list')">
+                    <span>☰</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breadcrumb Navigation -->
+            @if (ViewBag.Breadcrumbs != null)
+            {
+        <div class="fm-breadcrumb">
+                @foreach (var crumb in ViewBag.Breadcrumbs)
+                {
+                    if (crumb.IsActive)
+                    {
+                    <div class="fm-breadcrumb-item">
+                        <span class="fm-breadcrumb-current">@crumb.Name</span>
+                    </div>
+                    }
+                    else
+                    {
+                    <div class="fm-breadcrumb-item">
+                        <a href="@Url.Action("Index", new { path = crumb.Path })" class="fm-breadcrumb-link">
+                            @crumb.Name
+                        </a>
+                        <span class="fm-breadcrumb-separator">›</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    <!-- Hidden File Input (supports both files and folders) -->
+    <input type="file" id="fileInput" multiple webkitdirectory directory style="display: none;" />
+    
+    <!-- Hidden Progress -->
+    <div class="fm-progress" id="uploadProgress" style="position: fixed; top: 0; left: 0; right: 0; z-index: 9998;">
+        <div class="fm-progress-bar" id="uploadProgressBar"></div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div class="fm-modal-overlay" id="createFolderModal">
+        <div class="fm-modal">
+            <div class="fm-modal-header">
+                <h3 class="fm-modal-title">Create New Folder</h3>
+                <button class="fm-modal-close" onclick="hideCreateFolderModal()">×</button>
+            </div>
+            <div class="fm-modal-body">
+                <div class="fm-form-group">
+                    <label class="fm-form-label" for="folderNameInput">Folder Name</label>
+                    <input type="text" class="fm-form-input" id="folderNameInput" placeholder="Enter folder name" />
+                </div>
+            </div>
+            <div class="fm-modal-footer">
+                <button class="fm-btn fm-btn-secondary" onclick="hideCreateFolderModal()">Cancel</button>
+                <button class="fm-btn fm-btn-primary" onclick="createFolder()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="fm-modal-overlay" id="deleteModal">
+        <div class="fm-modal">
+            <div class="fm-modal-header">
+                <h3 class="fm-modal-title">Confirm Delete</h3>
+                <button class="fm-modal-close" onclick="hideDeleteModal()">×</button>
+            </div>
+            <div class="fm-modal-body">
+                <p>Are you sure you want to delete "<strong id="deleteItemName"></strong>"?</p>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">This action cannot be undone.</p>
+            </div>
+            <div class="fm-modal-footer">
+                <button class="fm-btn fm-btn-secondary" onclick="hideDeleteModal()">Cancel</button>
+                <button class="fm-btn fm-btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
     </div>
 
     <!-- Error Message -->
     @if (ViewBag.Error != null)
     {
-        <div class="alert alert-danger">Error: @ViewBag.Error</div>
+        <div class="alert alert-danger">
+            <strong>Error:</strong> @ViewBag.Error
+        </div>
     }
 
-    <!-- File List Table -->
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Files and Folders List</h5>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 5%"></th>
-                        <th style="width: 40%">Name</th>
-                        <th style="width: 15%">Type</th>
-                        <th style="width: 15%">Size</th>
-                        <th style="width: 15%">Modified Date</th>
-                        <th style="width: 10%">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (ViewBag.Items != null)
+    <!-- Files Container -->
+    <div class="fm-files-container">
+        <div class="fm-files-header">
+            <div class="fm-files-count">
+                @{
+                    var itemsList = ViewBag.Items as IEnumerable<dynamic>;
+                    var folderCount = 0;
+                    var fileCount = 0;
+
+                    if (itemsList != null)
                     {
-                        // Sort: folders first, then files
-                        var items = ((IEnumerable<dynamic>)ViewBag.Items)
-                        .OrderByDescending(x => x.Type)
-                        .ThenBy(x => x.Name);
+                        folderCount = itemsList.Count(x => x.Type == "Folder");
+                        fileCount = itemsList.Count(x => x.Type == "File");
+                    }
+                }
+                    @folderCount folders, @fileCount files
+            </div>
+        </div>
 
-                        @if (!items.Any())
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">
-                                    Folder is empty
-                                </td>
-                            </tr>
-                        }
-
-                        @foreach (var item in items)
-                        {
-                            <tr>
-                                <td class="text-center">
-                                    @if (item.Type == "Folder")
-                                    {
-                                        <span style="font-size: 1.2em;">📁</span>
-                                    }
-                                    else
-                                    {
-                                        <span style="font-size: 1.2em;">📄</span>
-                                    }
-                                </td>
-                                <td>
-                                    <strong>@item.Name</strong>
-                                    @if (!string.IsNullOrEmpty(item.Extension) && item.Type == "File")
-                                    {
-                                        <br />
-                                        <small class="text-muted">Extension: @item.Extension</small>
-                                    }
-                                </td>
-                                <td>
-                                    @if (item.Type == "Folder")
-                                    {
-                                        <span class="badge bg-info">Folder</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">File</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (item.Type == "Folder")
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
-                                    else
-                                    {
-                                        @if (item.Size < 1024)
+            @if (ViewBag.Items != null && ViewBag.Items.Count > 0)
+            {
+            <!-- Grid View (Default) -->
+            <div class="fm-grid-view" id="gridView">
+                            @foreach (var item in ViewBag.Items)
+                            {
+                    <div class="fm-grid-item" onclick="navigateToItem('@(item.Type == "Folder" ? 
+                                                                        Url.Action("Index", new { path = item.Path }) :
+                              Url.Action("Download", new { path = item.Path }))')">
+                        <button class="fm-delete-btn" onclick="event.stopPropagation(); showDeleteModal('@item.Name', '@item.Path')" title="Delete">🗑️</button>
+                        <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))">
+                                        @if (item.Type == "Folder")
                                         {
-                                            <span>@item.Size B</span>
-                                        }
-                                        else if (item.Size < 1024 * 1024)
-                                        {
-                                            <span>@((item.Size / 1024.0).ToString("0.00")) KB</span>
-                                        }
-                                        else if (item.Size < 1024 * 1024 * 1024)
-                                        {
-                                            <span>@((item.Size / (1024.0 * 1024)).ToString("0.00")) MB</span>
+                                <text>📁</text>
                                         }
                                         else
                                         {
-                                            <span>@((item.Size / (1024.0 * 1024 * 1024)).ToString("0.00")) GB</span>
-                                        }
-                                    }
-                                </td>
-                                <td>
-                                    @item.Modified.ToString("yyyy-MM-dd HH:mm")
-                                </td>
-                                <td>
-                                    @if (item.Type == "File")
-                                    {
-                                        <a href="@Url.Action("Download", new { filename = item.Name })"
-                                           class="btn btn-sm btn-outline-primary"
-                                           title="Download file">
-                                            Download
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-sm btn-outline-secondary" disabled
-                                                title="Folder operations not supported yet">
-                                            Open
-                                        </button>
-                                    }
-                                </td>
-                            </tr>
+                                @GetFileIcon(item.Extension)
+                            }
+                        </div>
+                        <div class="fm-grid-item-name" title="@item.Name">@item.Name</div>
+                        @if (item.Type == "File")
+                        {
+                            <div class="fm-grid-item-info">@FormatFileSize(item.Size)</div>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                No files or folders found
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        <div class="card-footer text-muted">
-            <small>Total @(((IEnumerable<dynamic>)ViewBag.Items)?.Count() ?? 0) items</small>
+                        else
+                        {
+                            <div class="fm-grid-item-info">Folder</div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- List View (Hidden by default) -->
+            <div class="fm-list-view" id="listView" style="display: none;">
+                <div class="fm-list-header">
+                    <div></div>
+                    <div>Name</div>
+                    <div>Type</div>
+                    <div>Size</div>
+                    <div>Modified</div>
+                    <div>Actions</div>
+                </div>
+                @foreach (var item in ViewBag.Items)
+                {
+                    <div class="fm-list-item" onclick="navigateToItem('@(item.Type == "Folder" ? 
+                                                                        Url.Action("Index", new { path = item.Path }) : 
+                                                                        Url.Action("Download", new { path = item.Path }))')">
+                        <div class="fm-list-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))">
+                                        @if (item.Type == "Folder")
+                                        {
+                                <text>📁</text>
+                                        }
+                                        else
+                                        {
+                                @GetFileIcon(item.Extension)
+                                        }
+                        </div>
+                        <div class="fm-list-name" title="@item.Name">@item.Name</div>
+                        <div class="fm-list-type">
+                                        @if (item.Type == "Folder")
+                                        {
+                                <span class="fm-badge fm-badge-folder">Folder</span>
+                                        }
+                                        else
+                                        {
+                                <span class="fm-badge fm-badge-file">@item.Extension</span>
+                            }
+                        </div>
+                        <div class="fm-list-size">
+                            @if (item.Type == "File")
+                            {
+                                @FormatFileSize(item.Size)
+                                            }
+                                            else
+                                            {
+                                <text>—</text>
+                            }
+                        </div>
+                        <div class="fm-list-date">@item.Modified.ToString("MMM dd, yyyy")</div>
+                        <div class="fm-list-actions" onclick="event.stopPropagation()">
+                                        @if (item.Type == "File")
+                                        {
+                                            <a href="@Url.Action("Download", new { path = item.Path })"
+                                   class="fm-action-btn">
+                                                Download
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a href="@Url.Action("Index", new { path = item.Path })"
+                                   class="fm-action-btn">
+                                                Open
+                                            </a>
+                            }
+                            <button class="fm-action-btn" style="border-color: #e81123; color: #e81123;" 
+                                    onclick="showDeleteModal('@item.Name', '@item.Path')">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+                </div>
+            }
+            else
+            {
+            <div class="fm-empty">
+                <div class="fm-empty-icon">📂</div>
+                <div class="fm-empty-text">This folder is empty</div>
+                <div class="fm-empty-hint">Drag files here or click Upload to add files</div>
+                </div>
+            }
         </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="mt-3">
-        <a href="@Url.Action("Index")" class="btn btn-success">
-            🔄 Refresh List
-        </a>
-        <button class="btn btn-outline-secondary" onclick="location.reload()">
-            Reload
-        </button>
-    </div>
-</div>
-
-<!-- Custom Styles -->
-<style>
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.05);
+@functions {
+    string GetFileIcon(string extension)
+    {
+        return extension?.ToLower() switch
+        {
+            ".doc" or ".docx" => "📄",
+            ".xls" or ".xlsx" => "📊",
+            ".ppt" or ".pptx" => "📽️",
+            ".pdf" => "📕",
+            ".txt" => "📝",
+            ".zip" or ".rar" or ".7z" => "📦",
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" => "🖼️",
+            ".mp4" or ".avi" or ".mov" or ".wmv" => "🎬",
+            ".mp3" or ".wav" or ".flac" => "🎵",
+            ".exe" => "⚙️",
+            ".html" or ".htm" => "🌐",
+            ".css" => "🎨",
+            ".js" => "📜",
+            ".json" => "📋",
+            ".xml" => "📋",
+            ".cs" => "💻",
+            ".py" => "🐍",
+            ".java" => "☕",
+            _ => "📄"
+        };
     }
 
-    .card {
-        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}
+
+<!-- JavaScript -->
+<script>
+    const currentPath = '@ViewBag.RelativePath';
+    const uploadUrl = '@Url.Action("Upload")';
+
+    // Elements
+    const dropOverlay = document.getElementById('dropOverlay');
+    const fileInput = document.getElementById('fileInput');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadProgressBar = document.getElementById('uploadProgressBar');
+    
+    let dragCounter = 0;
+    let deleteItemPath = '';
+
+    // Toast Notification System
+    function showToast(title, message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `fm-toast ${type}`;
+        
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        
+        toast.innerHTML = `
+            <div class="fm-toast-icon">${icons[type]}</div>
+            <div class="fm-toast-content">
+                <div class="fm-toast-title">${title}</div>
+                <div class="fm-toast-message">${message}</div>
+        </div>
+            <button class="fm-toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
     }
 
-    th {
-        border-bottom: 2px solid #dee2e6 !important;
+    // Theme Toggle
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        const themeIcon = document.getElementById('themeIcon');
+        themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
     }
-</style>
+
+    // Load saved theme
+    window.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        const themeIcon = document.getElementById('themeIcon');
+        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    });
+
+    // Prevent default drag behaviors on whole document
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Show overlay when dragging files over the page
+    document.addEventListener('dragenter', function(e) {
+        // Check if dragging files (not elements from the page)
+        if (e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+            dragCounter++;
+            if (dragCounter === 1) {
+                dropOverlay.classList.add('active');
+            }
+        }
+    });
+
+    document.addEventListener('dragleave', function(e) {
+        dragCounter--;
+        if (dragCounter === 0) {
+            dropOverlay.classList.remove('active');
+        }
+    });
+
+    // Handle file drop (supports both files and folders)
+    document.addEventListener('drop', async function(e) {
+        dragCounter = 0;
+        dropOverlay.classList.remove('active');
+        
+        const items = e.dataTransfer.items;
+        
+        if (items) {
+            const files = await getAllFileEntries(items);
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        } else {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        }
+    });
+
+    // Function to handle directory entries recursively
+    async function getAllFileEntries(dataTransferItemList) {
+        let fileEntries = [];
+        let queue = [];
+        
+        for (let i = 0; i < dataTransferItemList.length; i++) {
+            const item = dataTransferItemList[i];
+            if (item.kind === 'file') {
+                const entry = item.webkitGetAsEntry();
+                if (entry) {
+                    queue.push(entry);
+                }
+            }
+        }
+        
+        while (queue.length > 0) {
+            let entry = queue.shift();
+            if (entry.isFile) {
+                const file = await getFileFromEntry(entry);
+                fileEntries.push(file);
+            } else if (entry.isDirectory) {
+                const entries = await readAllDirectoryEntries(entry.createReader());
+                queue.push(...entries);
+            }
+        }
+        
+        return fileEntries;
+    }
+
+    // Read all entries from a directory reader
+    async function readAllDirectoryEntries(directoryReader) {
+        let entries = [];
+        let readEntries = await readEntriesPromise(directoryReader);
+        while (readEntries.length > 0) {
+            entries.push(...readEntries);
+            readEntries = await readEntriesPromise(directoryReader);
+        }
+        return entries;
+    }
+
+    // Promisify readEntries
+    function readEntriesPromise(directoryReader) {
+        return new Promise((resolve, reject) => {
+            directoryReader.readEntries(resolve, reject);
+        });
+    }
+
+    // Get File object from FileEntry
+    function getFileFromEntry(fileEntry) {
+        return new Promise((resolve, reject) => {
+            fileEntry.file(resolve, reject);
+        });
+    }
+
+    // Handle file input change (supports both files and folders)
+    fileInput.addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            handleFiles(this.files);
+        }
+        // Remove webkitdirectory for next use (allow both files and folders)
+        this.removeAttribute('webkitdirectory');
+        this.removeAttribute('directory');
+        this.value = ''; // Reset input
+    });
+
+    // Click handler to re-enable webkitdirectory
+    document.querySelector('button[onclick*="fileInput"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        // Set attributes to allow folder selection
+        fileInput.setAttribute('webkitdirectory', '');
+        fileInput.setAttribute('directory', '');
+        fileInput.click();
+    });
+
+    // Upload files (including folders via webkitdirectory)
+    function handleFiles(fileList) {
+        if (fileList.length === 0) return;
+
+        const formData = new FormData();
+        
+        // Add all files (including those from folders)
+        for (let i = 0; i < fileList.length; i++) {
+            formData.append('files', fileList[i]);
+        }
+
+        // Show progress bar
+        uploadProgress.classList.add('active');
+        uploadProgressBar.style.width = '0%';
+
+        // Create XMLHttpRequest for progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                uploadProgressBar.style.width = percentComplete + '%';
+            }
+        });
+
+        xhr.addEventListener('load', function() {
+            uploadProgress.classList.remove('active');
+            
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showToast('Upload Successful', response.message, 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('Upload Failed', response.message, 'error');
+                    }
+                } catch (e) {
+                    showToast('Upload Error', 'Failed to parse server response', 'error');
+                }
+            } else {
+                showToast('Upload Failed', `Server error: ${xhr.status}`, 'error');
+            }
+        });
+
+        xhr.addEventListener('error', function() {
+            uploadProgress.classList.remove('active');
+            showToast('Upload Error', 'Network error occurred during upload', 'error');
+        });
+
+        xhr.open('POST', uploadUrl + '?path=' + encodeURIComponent(currentPath));
+        xhr.send(formData);
+    }
+
+    // Create Folder Modal Functions
+    function showCreateFolderModal() {
+        document.getElementById('createFolderModal').classList.add('active');
+        document.getElementById('folderNameInput').value = '';
+        document.getElementById('folderNameInput').focus();
+    }
+
+    function hideCreateFolderModal() {
+        document.getElementById('createFolderModal').classList.remove('active');
+    }
+
+    // Create folder
+    function createFolder() {
+        const folderName = document.getElementById('folderNameInput').value.trim();
+        
+        if (!folderName) {
+            showToast('Invalid Input', 'Please enter a folder name', 'warning');
+            return;
+        }
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '@Url.Action("CreateFolder")' + '?path=' + encodeURIComponent(currentPath) + '&folderName=' + encodeURIComponent(folderName));
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showToast('Success', response.message, 'success');
+                        hideCreateFolderModal();
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('Error', response.message, 'error');
+                    }
+                } catch (e) {
+                    showToast('Error', 'Failed to parse server response', 'error');
+                }
+            } else {
+                showToast('Error', 'Failed to create folder', 'error');
+            }
+        });
+
+        xhr.addEventListener('error', function() {
+            showToast('Error', 'Network error occurred', 'error');
+        });
+
+        xhr.send();
+    }
+
+    // Delete Modal Functions
+    function showDeleteModal(name, path) {
+        deleteItemPath = path;
+        document.getElementById('deleteItemName').textContent = name;
+        document.getElementById('deleteModal').classList.add('active');
+    }
+
+    function hideDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+        deleteItemPath = '';
+    }
+
+    // Confirm delete
+    function confirmDelete() {
+        if (!deleteItemPath) return;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '@Url.Action("Delete")' + '?path=' + encodeURIComponent(deleteItemPath));
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showToast('Success', response.message, 'success');
+                        hideDeleteModal();
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('Error', response.message, 'error');
+                    }
+                } catch (e) {
+                    showToast('Error', 'Failed to parse server response', 'error');
+                }
+            } else {
+                showToast('Error', 'Failed to delete item', 'error');
+            }
+        });
+
+        xhr.addEventListener('error', function() {
+            showToast('Error', 'Network error occurred', 'error');
+        });
+
+        xhr.send();
+    }
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideCreateFolderModal();
+            hideDeleteModal();
+        }
+    });
+
+    // Close modals when clicking outside
+    document.getElementById('createFolderModal').addEventListener('click', function(e) {
+        if (e.target === this) hideCreateFolderModal();
+    });
+
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) hideDeleteModal();
+    });
+
+    // Enter key to create folder
+    document.getElementById('folderNameInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            createFolder();
+        }
+    });
+
+    // View switching
+    function switchView(view) {
+        const gridView = document.getElementById('gridView');
+        const listView = document.getElementById('listView');
+        const gridBtn = document.getElementById('viewGrid');
+        const listBtn = document.getElementById('viewList');
+
+        if (view === 'grid') {
+            gridView.style.display = 'grid';
+            listView.style.display = 'none';
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+            localStorage.setItem('fileManagerView', 'grid');
+        } else {
+            gridView.style.display = 'none';
+            listView.style.display = 'flex';
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+            localStorage.setItem('fileManagerView', 'list');
+        }
+    }
+
+    // Navigate to item (for list view)
+    function navigateToItem(url) {
+        window.location.href = url;
+    }
+
+    // Restore view preference on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        const savedView = localStorage.getItem('fileManagerView');
+        if (savedView === 'list') {
+            switchView('list');
+        }
+    });
+</script>
