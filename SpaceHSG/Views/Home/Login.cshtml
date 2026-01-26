@@ -1,0 +1,100 @@
+﻿@{
+    ViewData["Title"] = "Login";
+    Layout = "_LoginLayout";
+}
+
+<div class="login-page" id="loginPage">
+    <div class="login-card">
+        <div class="theme-toggle">
+            <span id="toggleText">Light Mode</span>
+            <label class="switch">
+                <input type="checkbox" id="themeSwitch">
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="login-header">
+            <h1>SpaceHSG</h1>
+            <p>Secure File Management System</p>
+        </div>
+
+        <form method="post" autocomplete="off">
+            <!-- 隐藏字段干扰 -->
+            <input type="text" style="display:none" aria-hidden="true">
+            <input type="password" style="display:none" aria-hidden="true">
+
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username"
+                       placeholder="Enter username"
+                       autocomplete="off"
+                       readonly
+                       onfocus="this.removeAttribute('readonly')"
+                       required />
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password"
+                       placeholder="Enter password"
+                       autocomplete="off"
+                       readonly
+                       onfocus="this.removeAttribute('readonly')"
+                       required />
+            </div>
+
+            <button type="submit" class="login-btn">
+                Sign In
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeSwitch = document.getElementById('themeSwitch');
+        const toggleText = document.getElementById('toggleText');
+        const loginForm = document.querySelector('form');
+
+        if (!themeSwitch) return;
+
+        // 初始化主题设置（布局中已经设置，这里更新UI）
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        themeSwitch.checked = savedTheme === 'dark';
+        if (toggleText) {
+            toggleText.innerText = savedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+        }
+
+        // 切换主题
+        themeSwitch.addEventListener('change', (e) => {
+            e.stopPropagation();
+
+            const nextTheme = themeSwitch.checked ? 'dark' : 'light';
+
+            // 更新页面主题
+            document.documentElement.setAttribute('data-bs-theme', nextTheme);
+
+            // 保存到 localStorage
+            localStorage.setItem('theme', nextTheme);
+
+            // 更新文本
+            if (toggleText) {
+                toggleText.innerText = nextTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+            }
+        });
+
+        // 在表单提交前确保主题保存到localStorage
+        if (loginForm) {
+            loginForm.addEventListener('submit', function() {
+                const currentTheme = themeSwitch.checked ? 'dark' : 'light';
+                localStorage.setItem('theme', currentTheme);
+            });
+        }
+
+        // 清空可能的自动填充
+        setTimeout(() => {
+            document.querySelector('input[name="username"]').value = '';
+            document.querySelector('input[name="password"]').value = '';
+        }, 200);
+    });
+</script>
