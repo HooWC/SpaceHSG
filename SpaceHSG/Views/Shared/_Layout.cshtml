@@ -7,24 +7,6 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SpaceHSG.styles.css" asp-append-version="true" />
-
-    <!-- 添加内联样式确保背景正确gfhg -->
-    <style>
-        /* 确保 body 有正确的背景 */
-        body {
-            background: var(--bg-page, linear-gradient(135deg, #f5f6fa, #e6e9f0)) !important;
-            background-attachment: fixed !important;
-            background-size: cover !important;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* 防止内容溢出 */
-        .container {
-            max-width: 100%;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
@@ -33,9 +15,9 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 HONG SENG GROUP - SpaceHSG
+    <footer class="footer-border-link footer text-muted">
+        <div class="footer">
+            &copy; <span id="year"></span> HONG SENG GROUP - SpaceHSG
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

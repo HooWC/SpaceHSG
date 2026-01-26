@@ -1,8 +1,7 @@
 ﻿@{
     ViewData["Title"] = "Login";
+    Layout = "_LoginLayout";
 }
-
-<link rel="stylesheet" href="~/css/login.css" />
 
 <div class="login-page" id="loginPage">
     <div class="login-card">
@@ -19,32 +18,35 @@
             <p>Secure File Management System</p>
         </div>
 
-        @if (ViewBag.Error != null)
-        {
-            <div class="login-error">
-                @ViewBag.Error
-            </div>
-        }
+        <form method="post" autocomplete="off">
+            <!-- 隐藏字段干扰 -->
+            <input type="text" style="display:none" aria-hidden="true">
+            <input type="password" style="display:none" aria-hidden="true">
 
-        <form method="post">
             <div class="form-group">
                 <label>Username</label>
-                <input type="text" name="username" placeholder="Enter username" required />
+                <input type="text" name="username"
+                       placeholder="Enter username"
+                       autocomplete="nope"
+                       readonly
+                       onfocus="this.removeAttribute('readonly')"
+                       required />
             </div>
 
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="Enter password" required />
+                <input type="password" name="password"
+                       placeholder="Enter password"
+                       autocomplete="new-password"
+                       readonly
+                       onfocus="this.removeAttribute('readonly')"
+                       required />
             </div>
 
             <button type="submit" class="login-btn">
                 Sign In
             </button>
         </form>
-
-        <div class="login-footer">
-            © 2026 SpaceHSG Internal System
-        </div>
     </div>
 </div>
 
@@ -56,22 +58,12 @@
 
         if (!themeSwitch) return;
 
-        // 立即应用主题，防止闪烁
-        (function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-
-            // 立即设置主题
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
-
-            // 更新UI
-            themeSwitch.checked = savedTheme === 'dark';
-            if (toggleText) {
-                toggleText.innerText = savedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
-            }
-
-            // 确保背景应用
-            document.body.style.backgroundColor = '';
-        })();
+        // 初始化主题设置（布局中已经设置，这里更新UI）
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        themeSwitch.checked = savedTheme === 'dark';
+        if (toggleText) {
+            toggleText.innerText = savedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+        }
 
         // 切换主题
         themeSwitch.addEventListener('change', (e) => {
@@ -98,5 +90,11 @@
                 localStorage.setItem('theme', currentTheme);
             });
         }
+
+        // 清空可能的自动填充
+        setTimeout(() => {
+            document.querySelector('input[name="username"]').value = '';
+            document.querySelector('input[name="password"]').value = '';
+        }, 200);
     });
 </script>

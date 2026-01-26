@@ -38,7 +38,7 @@
     [data-bs-theme="dark"] .fm-view-btn.active {
         background-color: var(--bg-hover);
         color: var(--text-primary);
-        border: 1px solid var(--border-color);
+        border: 1px solid white;
     }
 
 /* ================== 全局背景修复 ================== */
@@ -62,6 +62,7 @@ body {
     margin: 0;
     padding: 0;
 }
+
 
 /* 容器样式确保正确显示 */
 .file-manager-container {
@@ -406,10 +407,11 @@ body {
     display: flex;
     gap: 8px;
     justify-content: flex-start;
+    text-align:center;
 }
 
 .fm-action-btn {
-    width: 70px;
+    width: 100px;
     height: 25px;
     padding: 0 5px;
     font-size: 13px;

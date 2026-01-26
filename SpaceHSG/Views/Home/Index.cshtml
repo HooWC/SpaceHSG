@@ -33,11 +33,11 @@
                 <span class="fm-btn-icon">➕</span>
                 New Folder
             </button>
-            <button class="fm-btn" onclick="window.location.reload()">
+            <button class="fm-btn" onclick="refreshFileListWithoutReload()" title="Refresh without reloading page">
                 <span class="fm-btn-icon">🔄</span>
                 Refresh
             </button>
-            <button class="fm-theme-toggle" id="themeToggle" onclick="window.toggleThemeNow()">
+            <button class="fm-theme-toggle" id="themeToggle" onclick="toggleThemeNow()">
                 <span id="themeIcon">🌙</span>
             </button>
             <div class="fm-view-toggle">
@@ -52,38 +52,23 @@
             <button id="logoutBtn" class="fm-btn fm-btn-logout">
                 Logout ⏻
             </button>
-
-            <script>
-                window.addEventListener('DOMContentLoaded', () => {
-                    const logoutBtn = document.getElementById('logoutBtn');
-                    if (logoutBtn) {
-                        logoutBtn.addEventListener('click', () => {
-                            if (confirm("Are you sure you want to logout?")) {
-                                window.location.href = '@Url.Action("Logout", "Account")';
-                            }
-                        });
-                    }
-                });
-            </script>
-
-
         </div>
     </div>
 
     <!-- Breadcrumb Navigation -->
-            @if (ViewBag.Breadcrumbs != null)
-            {
+    @if (ViewBag.Breadcrumbs != null)
+    {
         <div class="fm-breadcrumb">
-                @foreach (var crumb in ViewBag.Breadcrumbs)
+            @foreach (var crumb in ViewBag.Breadcrumbs)
+            {
+                if (crumb.IsActive)
                 {
-                    if (crumb.IsActive)
-                    {
                     <div class="fm-breadcrumb-item">
                         <span class="fm-breadcrumb-current">@crumb.Name</span>
                     </div>
-                    }
-                    else
-                    {
+                }
+                else
+                {
                     <div class="fm-breadcrumb-item">
                         <a href="@Url.Action("Index", new { path = crumb.Path })" class="fm-breadcrumb-link">
                             @crumb.Name
@@ -97,7 +82,7 @@
 
     <!-- Hidden File Input (supports both files and folders) -->
     <input type="file" id="fileInput" multiple style="display: none;" />
-    
+
     <!-- Hidden Progress -->
     <div class="fm-progress" id="uploadProgress" style="position: fixed; top: 0; left: 0; right: 0; z-index: 9998;">
         <div class="fm-progress-bar" id="uploadProgressBar"></div>
@@ -164,27 +149,27 @@
                         fileCount = itemsList.Count(x => x.Type == "File");
                     }
                 }
-                    @folderCount folders, @fileCount files
+                @folderCount folders, @fileCount files
             </div>
         </div>
 
-            @if (ViewBag.Items != null && ViewBag.Items.Count > 0)
-            {
+        @if (ViewBag.Items != null && ViewBag.Items.Count > 0)
+        {
             <!-- Grid View (Default) -->
             <div class="fm-grid-view" id="gridView">
-                            @foreach (var item in ViewBag.Items)
-                            {
-                    <div class="fm-grid-item" onclick="navigateToItem('@(item.Type == "Folder" ? 
-                                                                        Url.Action("Index", new { path = item.Path }) :
-                              Url.Action("Download", new { path = item.Path }))')">
+                @foreach (var item in ViewBag.Items)
+                {
+                    <div class="fm-grid-item" onclick="navigateToItem('@(item.Type == "Folder" ?
+                                                                                                                      Url.Action("Index", new { path = item.Path }) :
+                                                                                                                      Url.Action("Download", new { path = item.Path }))')">
                         <button class="fm-delete-btn" onclick="event.stopPropagation(); showDeleteModal('@item.Name', '@item.Path')" title="Delete">🗑️</button>
                         <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))">
-                                        @if (item.Type == "Folder")
-                                        {
+                            @if (item.Type == "Folder")
+                            {
                                 <text>📁</text>
-                                        }
-                                        else
-                                        {
+                            }
+                            else
+                            {
                                 @GetFileIcon(item.Extension)
                             }
                         </div>
@@ -218,7 +203,7 @@
                         <div class="fm-list-checkbox-container" onclick="event.stopPropagation(); toggleItemSelection(this)">
                             <div class="fm-list-checkbox"></div>
                         </div>
-                        <div class="fm-list-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))" 
+                        <div class="fm-list-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))"
                              onclick="navigateToItemByElement(this)">
                             @if (item.Type == "Folder")
                             {
@@ -254,19 +239,19 @@
                         <div class="fm-list-actions" onclick="event.stopPropagation()">
                             @if (item.Type == "File")
                             {
-                                <a href="@Url.Action("Download", new { path = item.Path })" 
+                                <a href="@Url.Action("Download", new { path = item.Path })"
                                    class="fm-action-btn">
                                     Download
                                 </a>
                             }
                             else
                             {
-                                <a href="@Url.Action("Index", new { path = item.Path })" 
+                                <a href="@Url.Action("Index", new { path = item.Path })"
                                    class="fm-action-btn">
                                     Open
                                 </a>
                             }
-                            <button class="fm-action-btn delete-btn" style="border-color: #e81123; color: #e81123;" 
+                            <button class="fm-action-btn delete-btn" style="border-color: #e81123; color: #e81123;"
                                     onclick="showDeleteModalFromElement(this)">
                                 Delete
                             </button>
@@ -274,17 +259,17 @@
                     </div>
                 }
             </div>
-            }
-            else
-            {
+        }
+        else
+        {
             <div class="fm-empty">
                 <div class="fm-empty-icon">📂</div>
                 <div class="fm-empty-text">This folder is empty</div>
                 <div class="fm-empty-hint">Drag files here or click Upload to add files</div>
-                </div>
-            }
-        </div>
+            </div>
+        }
     </div>
+</div>
 
 @functions {
     string GetFileIcon(string extension)
@@ -327,520 +312,26 @@
     }
 }
 
-<!-- JavaScript -->
+<!-- 引用外部JavaScript文件 -->
+<script src="~/js/site.js" asp-append-version="true"></script>
+
+<!-- 初始化脚本 -->
 <script>
-    const currentPath = '@ViewBag.RelativePath';
-    const uploadUrl = '@Url.Action("Upload")';
-
-    // Elements
-    const dropOverlay = document.getElementById('dropOverlay');
-    const fileInput = document.getElementById('fileInput');
-    const uploadProgress = document.getElementById('uploadProgress');
-    const uploadProgressBar = document.getElementById('uploadProgressBar');
-    
-    let dragCounter = 0;
-    let deleteItemPath = '';
-
-    // Toast Notification System
-    function showToast(title, message, type = 'info') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `fm-toast ${type}`;
-        
-        const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
-        };
-        
-        toast.innerHTML = `
-            <div class="fm-toast-icon">${icons[type]}</div>
-            <div class="fm-toast-content">
-                <div class="fm-toast-title">${title}</div>
-                <div class="fm-toast-message">${message}</div>
-        </div>
-            <button class="fm-toast-close" onclick="this.parentElement.remove()">×</button>
-        `;
-        
-        container.appendChild(toast);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            toast.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 5000);
-    }
-
-
-
-
-
-
-
-
-
-
-
-    // ============== 主题切换 - 绝对可靠版本 ==============
-    // 放在所有其他JavaScript代码之前
-
-    // 1. 创建全局主题切换函数
-    window.toggleThemeNow = function() {
-        console.log('=== toggleThemeNow START ===');
-
-        try {
-            // 获取当前主题
-            const html = document.documentElement;
-
-            // 尝试多种方式获取当前主题
-            let currentTheme = html.getAttribute('data-bs-theme') ||
-                              html.getAttribute('data-theme') ||
-                              localStorage.getItem('theme') ||
-                              'light';
-
-            console.log('Current theme detected:', currentTheme);
-
-            // 计算新主题
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            console.log('Switching to:', newTheme);
-
-            // 同时设置两个属性确保兼容性
-            html.setAttribute('data-bs-theme', newTheme);
-            html.setAttribute('data-theme', newTheme);
-
-            // 保存到localStorage
-            localStorage.setItem('theme', newTheme);
-            console.log('Saved to localStorage:', newTheme);
-
-            // 更新按钮图标
-            const themeIcon = document.getElementById('themeIcon');
-            if (themeIcon) {
-                themeIcon.textContent = newTheme === 'light' ? '☀️' : '🌙';
-                console.log('Icon updated to:', themeIcon.textContent);
-            }
-
-            // 强制应用CSS变量
-            document.body.style.backgroundColor = '';
-            document.body.style.color = '';
-
-            console.log('=== toggleThemeNow SUCCESS ===');
-            return false;
-
-        } catch (error) {
-            console.error('=== toggleThemeNow ERROR ===', error);
-            return false;
+    // 页面加载后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 设置全局变量
+        if (typeof initializeFileManager === 'function') {
+            initializeFileManager('@ViewBag.RelativePath', '@Url.Action("Upload")');
         }
-    };
 
-    // 2. 主题初始化函数
-    function initThemeSystem() {
-        console.log('=== initThemeSystem START ===');
-
-        try {
-            // 获取保存的主题
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            console.log('Saved theme from localStorage:', savedTheme);
-
-            // 应用主题到HTML元素
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            console.log('HTML attributes set');
-
-            // 更新按钮图标
-            const themeIcon = document.getElementById('themeIcon');
-            if (themeIcon) {
-                themeIcon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
-                console.log('Icon set to:', themeIcon.textContent);
-            } else {
-                console.error('themeIcon element not found!');
-            }
-
-            // 确保按钮可以点击
-            const themeBtn = document.getElementById('themeToggle');
-            if (themeBtn) {
-                console.log('Theme button found');
-
-                // 移除所有现有事件监听器
-                const newBtn = themeBtn.cloneNode(true);
-                themeBtn.parentNode.replaceChild(newBtn, themeBtn);
-
-                // 重新绑定事件
-                newBtn.onclick = window.toggleThemeNow;
-                console.log('Button event bound');
-            } else {
-                console.error('themeToggle button not found!');
-            }
-
-            console.log('=== initThemeSystem COMPLETE ===');
-
-        } catch (error) {
-            console.error('=== initThemeSystem ERROR ===', error);
-        }
-    }
-
-    // 3. 页面加载时初始化
-    document.addEventListener('DOMContentLoaded', initThemeSystem);
-
-    // 4. 备用方案：如果DOMContentLoaded没触发，用setTimeout
-    setTimeout(initThemeSystem, 100);
-
-
-
-
-
-    // Prevent default drag behaviors on whole document
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        document.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    // Show overlay when dragging files over the page
-    document.addEventListener('dragenter', function(e) {
-        // Check if dragging files (not elements from the page)
-        if (e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
-            dragCounter++;
-            if (dragCounter === 1) {
-                dropOverlay.classList.add('active');
-            }
-        }
-    });
-
-    document.addEventListener('dragleave', function(e) {
-        dragCounter--;
-        if (dragCounter === 0) {
-            dropOverlay.classList.remove('active');
-        }
-    });
-
-    // Handle file drop (supports both files and folders)
-    document.addEventListener('drop', async function(e) {
-        dragCounter = 0;
-        dropOverlay.classList.remove('active');
-        
-        const items = e.dataTransfer.items;
-        
-        if (items) {
-            const files = await getAllFileEntries(items);
-            if (files.length > 0) {
-                handleFiles(files);
-            }
-        } else {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFiles(files);
-            }
-        }
-    });
-
-    // Function to handle directory entries recursively
-    async function getAllFileEntries(dataTransferItemList) {
-        let fileEntries = [];
-        let queue = [];
-        
-        for (let i = 0; i < dataTransferItemList.length; i++) {
-            const item = dataTransferItemList[i];
-            if (item.kind === 'file') {
-                const entry = item.webkitGetAsEntry();
-                if (entry) {
-                    queue.push(entry);
+        // 设置登出按钮事件
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (confirm("Are you sure you want to logout?")) {
+                    window.location.href = '@Url.Action("Logout", "Account")';
                 }
-            }
-        }
-        
-        while (queue.length > 0) {
-            let entry = queue.shift();
-            if (entry.isFile) {
-                const file = await getFileFromEntry(entry);
-                fileEntries.push(file);
-            } else if (entry.isDirectory) {
-                const entries = await readAllDirectoryEntries(entry.createReader());
-                queue.push(...entries);
-            }
-        }
-        
-        return fileEntries;
-    }
-
-    // Read all entries from a directory reader
-    async function readAllDirectoryEntries(directoryReader) {
-        let entries = [];
-        let readEntries = await readEntriesPromise(directoryReader);
-        while (readEntries.length > 0) {
-            entries.push(...readEntries);
-            readEntries = await readEntriesPromise(directoryReader);
-        }
-        return entries;
-    }
-
-    // Promisify readEntries
-    function readEntriesPromise(directoryReader) {
-        return new Promise((resolve, reject) => {
-            directoryReader.readEntries(resolve, reject);
-        });
-    }
-
-    // Get File object from FileEntry
-    function getFileFromEntry(fileEntry) {
-        return new Promise((resolve, reject) => {
-            fileEntry.file(resolve, reject);
-        });
-    }
-
-    // Handle file input change (supports both files and folders)
-    fileInput.addEventListener('change', function(e) {
-        if (this.files.length > 0) {
-            handleFiles(this.files);
-        }
-        this.value = ''; // Reset input
-    });
-
-    // Upload files (including folders via webkitdirectory)
-    function handleFiles(fileList) {
-        if (fileList.length === 0) return;
-
-        const formData = new FormData();
-        
-        // Add all files (including those from folders)
-        for (let i = 0; i < fileList.length; i++) {
-            formData.append('files', fileList[i]);
-        }
-
-        // Show progress bar
-        uploadProgress.classList.add('active');
-        uploadProgressBar.style.width = '0%';
-
-        // Create XMLHttpRequest for progress tracking
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', function(e) {
-            if (e.lengthComputable) {
-                const percentComplete = (e.loaded / e.total) * 100;
-                uploadProgressBar.style.width = percentComplete + '%';
-            }
-        });
-
-        xhr.addEventListener('load', function() {
-            uploadProgress.classList.remove('active');
-            
-            if (xhr.status === 200) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        showToast('Upload Successful', response.message, 'success');
-                        setTimeout(() => window.location.reload(), 1500);
-                    } else {
-                        showToast('Upload Failed', response.message, 'error');
-                    }
-                } catch (e) {
-                    showToast('Upload Error', 'Failed to parse server response', 'error');
-                }
-            } else {
-                showToast('Upload Failed', `Server error: ${xhr.status}`, 'error');
-            }
-        });
-
-        xhr.addEventListener('error', function() {
-            uploadProgress.classList.remove('active');
-            showToast('Upload Error', 'Network error occurred during upload', 'error');
-        });
-
-        xhr.open('POST', uploadUrl + '?path=' + encodeURIComponent(currentPath));
-        xhr.send(formData);
-    }
-
-    // Create Folder Modal Functions
-    function showCreateFolderModal() {
-        document.getElementById('createFolderModal').classList.add('active');
-        document.getElementById('folderNameInput').value = '';
-        document.getElementById('folderNameInput').focus();
-    }
-
-    function hideCreateFolderModal() {
-        document.getElementById('createFolderModal').classList.remove('active');
-    }
-
-    // Create folder
-    function createFolder() {
-        const folderName = document.getElementById('folderNameInput').value.trim();
-        
-        if (!folderName) {
-            showToast('Invalid Input', 'Please enter a folder name', 'warning');
-            return;
-        }
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '@Url.Action("CreateFolder")' + '?path=' + encodeURIComponent(currentPath) + '&folderName=' + encodeURIComponent(folderName));
-        
-        xhr.addEventListener('load', function() {
-            if (xhr.status === 200) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        showToast('Success', response.message, 'success');
-                        hideCreateFolderModal();
-                        setTimeout(() => window.location.reload(), 1000);
-                    } else {
-                        showToast('Error', response.message, 'error');
-                    }
-                } catch (e) {
-                    showToast('Error', 'Failed to parse server response', 'error');
-                }
-            } else {
-                showToast('Error', 'Failed to create folder', 'error');
-            }
-        });
-
-        xhr.addEventListener('error', function() {
-            showToast('Error', 'Network error occurred', 'error');
-        });
-
-        xhr.send();
-    }
-
-    // Delete Modal Functions
-    function showDeleteModal(name, path) {
-        deleteItemPath = path;
-        document.getElementById('deleteItemName').textContent = name;
-        document.getElementById('deleteModal').classList.add('active');
-    }
-
-    function hideDeleteModal() {
-        document.getElementById('deleteModal').classList.remove('active');
-        deleteItemPath = '';
-    }
-
-    // Confirm delete
-    function confirmDelete() {
-        if (!deleteItemPath) return;
-
-        // Use FormData to send the path in POST body instead of URL
-        const formData = new FormData();
-        formData.append('path', deleteItemPath);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '@Url.Action("Delete")');
-        
-        xhr.addEventListener('load', function() {
-            if (xhr.status === 200) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        showToast('Success', response.message, 'success');
-                        hideDeleteModal();
-                        setTimeout(() => window.location.reload(), 1000);
-                    } else {
-                        showToast('Error', response.message, 'error');
-                    }
-                } catch (e) {
-                    showToast('Error', 'Failed to parse server response', 'error');
-                }
-            } else {
-                showToast('Error', 'Failed to delete item', 'error');
-            }
-        });
-
-        xhr.addEventListener('error', function() {
-            showToast('Error', 'Network error occurred', 'error');
-        });
-
-        xhr.send(formData);
-    }
-
-    // Close modals with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            hideCreateFolderModal();
-            hideDeleteModal();
+            });
         }
     });
-
-    // Close modals when clicking outside
-    document.getElementById('createFolderModal').addEventListener('click', function(e) {
-        if (e.target === this) hideCreateFolderModal();
-    });
-
-    document.getElementById('deleteModal').addEventListener('click', function(e) {
-        if (e.target === this) hideDeleteModal();
-    });
-
-    // Enter key to create folder
-    document.getElementById('folderNameInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            createFolder();
-        }
-    });
-
-    // View switching
-    function switchView(view) {
-        const gridView = document.getElementById('gridView');
-        const listView = document.getElementById('listView');
-        const gridBtn = document.getElementById('viewGrid');
-        const listBtn = document.getElementById('viewList');
-
-        if (view === 'grid') {
-            gridView.style.display = 'grid';
-            listView.style.display = 'none';
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
-            localStorage.setItem('fileManagerView', 'grid');
-        } else {
-            gridView.style.display = 'none';
-            listView.style.display = 'flex';
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
-            localStorage.setItem('fileManagerView', 'list');
-        }
-    }
-
-    // Navigate to item (for list view)
-    function navigateToItem(url) {
-        window.location.href = url;
-    }
-
-    // Navigate based on element's parent item
-    function navigateToItemByElement(element) {
-        const listItem = element.closest('.fm-list-item');
-        if (listItem && !listItem.classList.contains('selected')) {
-            const itemType = listItem.dataset.type;
-            const itemPath = listItem.dataset.path;
-            
-            if (itemType === 'Folder') {
-                window.location.href = '@Url.Action("Index")' + '?path=' + encodeURIComponent(itemPath);
-            } else {
-                window.location.href = '@Url.Action("Download")' + '?path=' + encodeURIComponent(itemPath);
-            }
-        }
-    }
-
-    // Toggle item selection with checkbox
-    function toggleItemSelection(checkboxContainer) {
-        const listItem = checkboxContainer.closest('.fm-list-item');
-        const checkbox = checkboxContainer.querySelector('.fm-list-checkbox');
-        
-        listItem.classList.toggle('selected');
-        checkbox.classList.toggle('checked');
-    }
-
-    // Show delete modal from element
-    function showDeleteModalFromElement(button) {
-        const listItem = button.closest('.fm-list-item');
-        const name = listItem.dataset.name;
-        const path = listItem.dataset.path;
-        showDeleteModal(name, path);
-    }
-
-    // Restore view preference on page load
-    window.addEventListener('DOMContentLoaded', function() {
-        const savedView = localStorage.getItem('fileManagerView');
-        if (savedView === 'list') {
-            switchView('list');
-        }
-    });
-
-
 </script>

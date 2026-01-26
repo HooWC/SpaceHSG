@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SpaceHSG</title>
+
+    <!-- 登录页面的CSS -->
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+
+    <!-- 主题变量和内联JS -->
+    <script>
+        // 立即设置主题，防止页面闪烁
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        })();
+    </script>
+</head>
+<body>
+    <!-- Toast Container - 在整个页面的右上角 -->
+    <div class="fm-toast-container" id="toastContainer">
+        @if (ViewBag.Error != null)
+        {
+            <div class="fm-toast show fm-toast-error">
+                <div class="fm-toast-content">
+                    <div class="fm-toast-icon">⚠️</div>
+                    <div class="fm-toast-text">
+                        <div class="fm-toast-title">Login Error</div>
+                        <div class="fm-toast-message">@ViewBag.Error</div>
+                    </div>
+                    <button class="fm-toast-close" onclick="closeToast(this)">×</button>
+                </div>
+                <div class="fm-toast-progress"></div>
+            </div>
+        }
+    </div>
+
+    @RenderBody()
+
+    <!-- 登录页面的JS -->
+    <script>
+        // Toast 关闭函数
+        function closeToast(button) {
+            const toast = button.closest('.fm-toast');
+            fadeOutToast(toast);
+        }
+
+        function fadeOutToast(toast) {
+            if (!toast) return;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+
+        // 自动隐藏错误提示（5秒后）
+        document.addEventListener('DOMContentLoaded', function() {
+            const errorToast = document.querySelector('.fm-toast-error');
+            if (errorToast) {
+                setTimeout(() => {
+                    fadeOutToast(errorToast);
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

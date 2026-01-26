@@ -465,6 +465,81 @@ namespace SpaceHSG.Controllers
 
             return breadcrumbs;
         }
+
+        // 添加这个Action方法到HomeController
+        // 添加这个方法到HomeController中
+        [HttpGet]
+        public IActionResult GetFileList(string path = "")
+        {
+            try
+            {
+                string currentPath;
+
+                if (string.IsNullOrEmpty(path) || path == RootPath)
+                {
+                    currentPath = basePath;
+                    path = RootPath;
+                }
+                else
+                {
+                    var decodedPath = Uri.UnescapeDataString(path);
+                    currentPath = Path.Combine(basePath, decodedPath);
+
+                    // Security check
+                    if (!currentPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Forbid();
+                    }
+                }
+
+                // Get folder list
+                var directories = Directory.GetDirectories(currentPath)
+                    .Select(dirPath => new
+                    {
+                        Name = new DirectoryInfo(dirPath).Name,
+                        Type = "Folder",
+                        Size = 0L,
+                        Modified = Directory.GetLastWriteTime(dirPath),
+                        Extension = "",
+                        Path = GetRelativePath(dirPath, basePath)
+                    });
+
+                // Get file list
+                var files = Directory.GetFiles(currentPath)
+                    .Select(filePath => new
+                    {
+                        Name = Path.GetFileName(filePath),
+                        Type = "File",
+                        Size = new FileInfo(filePath).Length,
+                        Modified = System.IO.File.GetLastWriteTime(filePath),
+                        Extension = Path.GetExtension(filePath),
+                        Path = GetRelativePath(filePath, basePath)
+                    });
+
+                // Merge and sort
+                var items = directories.Concat(files)
+                    .OrderByDescending(x => x.Type)
+                    .ThenBy(x => x.Name)
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    items = items,
+                    folderCount = items.Count(x => x.Type == "Folder"),
+                    fileCount = items.Count(x => x.Type == "File"),
+                    currentPath = path
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 
 

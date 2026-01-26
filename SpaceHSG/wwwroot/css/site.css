@@ -20,3 +20,15 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+[data-bs-theme="light"] {
+    --bd-top-link-color: solid 1px #ddd9d9;
+}
+
+[data-bs-theme="dark"] {
+    --bd-top-link-color: solid 1px #4a4a4a;
+}
+
+.footer-border-link {
+    border-top: var(--bd-top-link-color);
+}
