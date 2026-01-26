@@ -8,7 +8,7 @@ namespace SpaceHSG.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string basePath = @"C:\sharedrive"; // Change to server
+        private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change to server
         private const string RootPath = ""; // Root path identifier
 
         public IActionResult Index(string path = "")

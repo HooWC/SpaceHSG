@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Files - SpaceHSG";
+    ViewData["Title"] = "Files";
 }
 
 <!-- OneDrive Style CSS -->
@@ -20,10 +20,12 @@
 <div class="file-manager-container">
     <!-- Header -->
     <div class="fm-header">
-        <h1 class="fm-title">
-            <div class="fm-title-icon">☁️</div>
-            SpaceHSG
-        </h1>
+        <a href="~/Home/index" class="logo-text-a">
+            <h1 class="fm-title">
+                <div class="fm-title-icon">☁️</div>
+                SpaceHSG
+            </h1>
+        </a>
         <div class="fm-toolbar">
             <button class="fm-btn fm-btn-primary" onclick="document.getElementById('fileInput').click()">
                 <span class="fm-btn-icon">⬆️</span>

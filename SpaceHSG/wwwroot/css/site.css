@@ -32,3 +32,7 @@ body {
 .footer-border-link {
     border-top: var(--bd-top-link-color);
 }
+
+.logo-text-a{
+    text-decoration:none;
+}
