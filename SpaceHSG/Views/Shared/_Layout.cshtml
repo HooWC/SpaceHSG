@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +7,24 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SpaceHSG.styles.css" asp-append-version="true" />
+
+    <!-- 添加内联样式确保背景正确 -->
+    <style>
+        /* 确保 body 有正确的背景 */
+        body {
+            background: var(--bg-page, linear-gradient(135deg, #f5f6fa, #e6e9f0)) !important;
+            background-attachment: fixed !important;
+            background-size: cover !important;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 防止内容溢出 */
+        .container {
+            max-width: 100%;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -24,5 +42,13 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        // 在所有页面加载时立即应用主题
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        });
+    </script>
 </body>
 </html>

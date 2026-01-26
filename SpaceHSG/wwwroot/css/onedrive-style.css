@@ -1,6 +1,7 @@
 /* OneDrive Style - Modern File Manager */
 
-:root {
+[data-bs-theme="light"] {
+    --bg-page: linear-gradient(135deg, #f5f6fa, #e6e9f0);
     --primary-blue: #0078d4;
     --primary-blue-hover: #106ebe;
     --primary-blue-light: #deecf9;
@@ -14,7 +15,8 @@
 }
 
 /* Dark Theme */
-[data-theme="dark"] {
+[data-bs-theme="dark"] {
+    --bg-page: linear-gradient(135deg, #1e1e1e, #2c2c2c);
     --primary-blue: #4a9eff;
     --primary-blue-hover: #6ab0ff;
     --primary-blue-light: #1a3a52;
@@ -27,25 +29,55 @@
     --shadow-md: 0 3.2px 7.2px 0 rgba(0,0,0,.4), 0 0.6px 1.8px 0 rgba(0,0,0,.3);
 }
 
-[data-theme="dark"] body {
-    background-color: #121212;
-}
 
-[data-theme="dark"] .fm-files-container,
-[data-theme="dark"] .fm-btn {
-    background-color: #1e1e1e;
-}
+    [data-bs-theme="dark"] .fm-files-container,
+    [data-bs-theme="dark"] .fm-btn {
+        background-color: var(--bg-gray);
+    }
 
-[data-theme="dark"] .fm-view-btn.active {
-    background-color: #2d2d2d;
+    [data-bs-theme="dark"] .fm-view-btn.active {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+/* ================== 全局背景修复 ================== */
+
+
+/* ================== 全局背景修复 ================== */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
 }
 
 body {
+    background: var(--bg-page) !important;
+    background-attachment: fixed !important;
+    background-size: cover !important;
     font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", sans-serif;
-    background-color: #ffffff;
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
+    margin: 0;
+    padding: 0;
 }
+
+/* 容器样式确保正确显示 */
+.file-manager-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: calc(100vh - 60px);
+}
+
+/* 修复登录页面背景 */
+.login-page {
+    background: var(--bg-page) !important;
+    background-attachment: fixed !important;
+    background-size: cover !important;
+}
+
 
 /* Container */
 .file-manager-container {
@@ -101,7 +133,7 @@ body {
     gap: 6px;
     padding: 8px 16px;
     border: 1px solid var(--border-color);
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     color: var(--text-primary);
     border-radius: 4px;
     font-size: 14px;
@@ -110,10 +142,11 @@ body {
     transition: all 0.15s ease;
 }
 
-.fm-btn:hover {
-    background: var(--bg-hover);
-    border-color: var(--text-secondary);
-}
+    .fm-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--text-secondary);
+    }
+
 
 .fm-btn-primary {
     background: var(--primary-blue);
@@ -121,10 +154,11 @@ body {
     border-color: var(--primary-blue);
 }
 
-.fm-btn-primary:hover {
-    background: var(--primary-blue-hover);
-    border-color: var(--primary-blue-hover);
-}
+    .fm-btn-primary:hover {
+        background: var(--primary-blue-hover);
+        border-color: var(--primary-blue-hover);
+        color: white;
+    }
 
 .fm-btn-icon {
     font-size: 16px;
@@ -157,10 +191,10 @@ body {
     transition: background 0.15s ease;
 }
 
-.fm-breadcrumb-link:hover {
-    background: white;
-    text-decoration: none;
-}
+    .fm-breadcrumb-link:hover {
+        background: var(--bg-hover); /* 改为使用变量 */
+        text-decoration: none;
+    }
 
 .fm-breadcrumb-current {
     color: var(--text-primary);
@@ -220,10 +254,11 @@ body {
 
 /* File List */
 .fm-files-container {
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
+    color: var(--text-primary);
 }
 
 .fm-files-header {
@@ -231,8 +266,9 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    background: var(--bg-gray);
+    background: var(--bg-hover); /* 改为更深的背景 */
     border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
 }
 
 .fm-files-count {
@@ -260,15 +296,16 @@ body {
     transition: all 0.15s ease;
     text-decoration: none;
     color: var(--text-primary);
+    background: var(--bg-gray); /* 添加背景 */
 }
 
-.fm-grid-item:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-color);
-    box-shadow: var(--shadow-sm);
-    text-decoration: none;
-    color: var(--text-primary);
-}
+    .fm-grid-item:hover {
+        background: var(--bg-hover);
+        border-color: var(--border-color);
+        box-shadow: var(--shadow-sm);
+        text-decoration: none;
+        color: var(--text-primary);
+    }
 
 .fm-grid-item-icon {
     font-size: 48px;
@@ -372,10 +409,12 @@ body {
 }
 
 .fm-action-btn {
-    padding: 4px 12px;
-    font-size: 12px;
+    width: 70px;
+    height: 25px;
+    padding: 0 5px;
+    font-size: 13px;
     border: 1px solid var(--border-color);
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     border-radius: 3px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -384,11 +423,11 @@ body {
     display: inline-block;
 }
 
-.fm-action-btn:hover {
-    background: var(--primary-blue-light);
-    border-color: var(--primary-blue);
-    text-decoration: none;
-}
+    .fm-action-btn:hover {
+        background: var(--primary-blue-light);
+        border-color: var(--primary-blue);
+        text-decoration: none;
+    }
 
 /* Empty State */
 .fm-empty {
@@ -432,10 +471,12 @@ body {
     transition: all 0.15s ease;
 }
 
-.fm-view-btn.active {
-    background: white;
-    box-shadow: var(--shadow-sm);
-}
+    .fm-view-btn.active {
+        background: var(--bg-hover); /* 改为使用变量 */
+        color: var(--text-primary);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+    }
 
 /* Loading Spinner */
 .fm-spinner {
@@ -528,13 +569,13 @@ body {
 }
 
 .fm-badge-folder {
-    background: #FFF4CE;
-    color: #8A6116;
+    background: var(--primary-blue-light); /* 改为使用变量 */
+    color: var(--text-primary);
 }
 
 .fm-badge-file {
-    background: #E1DFDD;
-    color: #605E5C;
+    background: var(--bg-hover); /* 改为使用变量 */
+    color: var(--text-secondary);
 }
 
 /* Theme Toggle Button */
@@ -552,7 +593,7 @@ body {
     transition: all 0.3s ease;
 }
 
-[data-theme="dark"] .fm-theme-toggle {
+[data-bs-theme="dark"] .fm-theme-toggle {
     background: #1e1e1e;
 }
 
@@ -574,33 +615,29 @@ body {
 }
 
 .fm-toast {
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-md);
     padding: 16px 20px;
     display: flex;
     align-items: flex-start;
     gap: 12px;
     animation: slideIn 0.3s ease;
-    border-left: 4px solid #0078d4;
+    border-left: 4px solid var(--primary-blue);
+    color: var(--text-primary);
 }
 
-[data-theme="dark"] .fm-toast {
-    background: #2d2d2d;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-}
+    .fm-toast.success {
+        border-left-color: #107c10;
+    }
 
-.fm-toast.success {
-    border-left-color: #107c10;
-}
+    .fm-toast.error {
+        border-left-color: #e81123;
+    }
 
-.fm-toast.error {
-    border-left-color: #e81123;
-}
-
-.fm-toast.warning {
-    border-left-color: #ffb900;
-}
+    .fm-toast.warning {
+        border-left-color: #ffb900;
+    }
 
 .fm-toast-icon {
     font-size: 24px;
@@ -686,16 +723,26 @@ body {
 }
 
 .fm-modal {
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-md);
     padding: 0;
     min-width: 400px;
     max-width: 90%;
     animation: modalZoomIn 0.3s ease;
+    color: var(--text-primary);
 }
 
-[data-theme="dark"] .fm-modal {
+.fm-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-hover); /* 添加背景 */
+}
+
+[data-bs-theme="dark"] .fm-modal {
     background: #2d2d2d;
 }
 
@@ -708,14 +755,6 @@ body {
         transform: scale(1);
         opacity: 1;
     }
-}
-
-.fm-modal-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .fm-modal-title {
@@ -776,30 +815,30 @@ body {
     border-radius: 4px;
     font-size: 14px;
     font-family: inherit;
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     color: var(--text-primary);
     transition: all 0.2s ease;
 }
 
-[data-theme="dark"] .fm-form-input {
+    .fm-form-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px var(--primary-blue-light);
+    }
+
+[data-bs-theme="dark"] .fm-form-input {
     background: #1e1e1e;
 }
 
-.fm-form-input:focus {
-    outline: none;
-    border-color: var(--primary-blue);
-    box-shadow: 0 0 0 3px var(--primary-blue-light);
-}
-
 .fm-btn-secondary {
-    background: var(--bg-gray);
+    background: var(--bg-hover);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
-.fm-btn-secondary:hover {
-    background: var(--bg-hover);
-}
+    .fm-btn-secondary:hover {
+        background: var(--bg-gray);
+    }
 
 .fm-btn-danger {
     background: #e81123;
@@ -807,10 +846,10 @@ body {
     border-color: #e81123;
 }
 
-.fm-btn-danger:hover {
-    background: #c50f1f;
-    border-color: #c50f1f;
-}
+    .fm-btn-danger:hover {
+        background: #c50f1f;
+        border-color: #c50f1f;
+    }
 
 /* Delete Button in Grid/List */
 .fm-delete-btn {
@@ -885,12 +924,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
+    background: var(--bg-gray); /* 改为使用变量 */
     transition: all 0.2s ease;
 }
 
-[data-theme="dark"] .fm-list-checkbox {
-    background: #1e1e1e;
+[data-bs-theme="dark"] .fm-list-checkbox {
+    background: var(--bg-hover);
 }
 
 .fm-list-checkbox:hover {
@@ -925,4 +964,67 @@ body {
 
 input[type="file"][webkitdirectory] {
     display: none;
+}
+
+/* ================== 添加缺失的全局样式 ================== */
+
+/* 确保所有文本元素使用正确的颜色 */
+h1, h2, h3, h4, h5, h6,
+p, span, div, a,
+button, input, textarea,
+.fm-title, .fm-files-count,
+.fm-grid-item-name, .fm-grid-item-info,
+.fm-list-name, .fm-list-type, .fm-list-size, .fm-list-date {
+    color: var(--text-primary);
+}
+
+/* 确保链接颜色正确 */
+a {
+    color: var(--primary-blue);
+}
+
+    a:hover {
+        color: var(--primary-blue-hover);
+    }
+
+/* 确保边框颜色一致 */
+.fm-header,
+.fm-files-container,
+.fm-list-header,
+.fm-list-item,
+.fm-grid-item,
+.fm-btn,
+.fm-action-btn,
+.fm-modal-header,
+.fm-modal-footer {
+    border-color: var(--border-color);
+}
+
+    /* 确保阴影使用变量 */
+    .fm-grid-item:hover,
+    .fm-toast,
+    .fm-modal,
+    .fm-view-btn.active {
+        box-shadow: var(--shadow-sm);
+    }
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 10px;
+    background: var(--bg-gray);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 5px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+    }
+
+/* 选择文本颜色 */
+::selection {
+    background-color: var(--primary-blue-light);
+    color: var(--text-primary);
 }

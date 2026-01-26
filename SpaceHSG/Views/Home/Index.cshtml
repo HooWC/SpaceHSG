@@ -37,7 +37,7 @@
                 <span class="fm-btn-icon">🔄</span>
                 Refresh
             </button>
-            <button class="fm-theme-toggle" id="themeToggle" onclick="toggleTheme()">
+            <button class="fm-theme-toggle" id="themeToggle" onclick="window.toggleThemeNow()">
                 <span id="themeIcon">🌙</span>
             </button>
             <div class="fm-view-toggle">
@@ -48,6 +48,25 @@
                     <span>☰</span>
                 </button>
             </div>
+
+            <button id="logoutBtn" class="fm-btn fm-btn-logout">
+                Logout ⏻
+            </button>
+
+            <script>
+                window.addEventListener('DOMContentLoaded', () => {
+                    const logoutBtn = document.getElementById('logoutBtn');
+                    if (logoutBtn) {
+                        logoutBtn.addEventListener('click', () => {
+                            if (confirm("Are you sure you want to logout?")) {
+                                window.location.href = '@Url.Action("Logout", "Account")';
+                            }
+                        });
+                    }
+                });
+            </script>
+
+
         </div>
     </div>
 
@@ -353,26 +372,122 @@
         }, 5000);
     }
 
-    // Theme Toggle
-    function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        
-        const themeIcon = document.getElementById('themeIcon');
-        themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+
+
+
+
+
+
+
+
+
+
+    // ============== 主题切换 - 绝对可靠版本 ==============
+    // 放在所有其他JavaScript代码之前
+
+    // 1. 创建全局主题切换函数
+    window.toggleThemeNow = function() {
+        console.log('=== toggleThemeNow START ===');
+
+        try {
+            // 获取当前主题
+            const html = document.documentElement;
+
+            // 尝试多种方式获取当前主题
+            let currentTheme = html.getAttribute('data-bs-theme') ||
+                              html.getAttribute('data-theme') ||
+                              localStorage.getItem('theme') ||
+                              'light';
+
+            console.log('Current theme detected:', currentTheme);
+
+            // 计算新主题
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            console.log('Switching to:', newTheme);
+
+            // 同时设置两个属性确保兼容性
+            html.setAttribute('data-bs-theme', newTheme);
+            html.setAttribute('data-theme', newTheme);
+
+            // 保存到localStorage
+            localStorage.setItem('theme', newTheme);
+            console.log('Saved to localStorage:', newTheme);
+
+            // 更新按钮图标
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) {
+                themeIcon.textContent = newTheme === 'light' ? '☀️' : '🌙';
+                console.log('Icon updated to:', themeIcon.textContent);
+            }
+
+            // 强制应用CSS变量
+            document.body.style.backgroundColor = '';
+            document.body.style.color = '';
+
+            console.log('=== toggleThemeNow SUCCESS ===');
+            return false;
+
+        } catch (error) {
+            console.error('=== toggleThemeNow ERROR ===', error);
+            return false;
+        }
+    };
+
+    // 2. 主题初始化函数
+    function initThemeSystem() {
+        console.log('=== initThemeSystem START ===');
+
+        try {
+            // 获取保存的主题
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            console.log('Saved theme from localStorage:', savedTheme);
+
+            // 应用主题到HTML元素
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            console.log('HTML attributes set');
+
+            // 更新按钮图标
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) {
+                themeIcon.textContent = savedTheme === 'light' ? '☀️' : '🌙';
+                console.log('Icon set to:', themeIcon.textContent);
+            } else {
+                console.error('themeIcon element not found!');
+            }
+
+            // 确保按钮可以点击
+            const themeBtn = document.getElementById('themeToggle');
+            if (themeBtn) {
+                console.log('Theme button found');
+
+                // 移除所有现有事件监听器
+                const newBtn = themeBtn.cloneNode(true);
+                themeBtn.parentNode.replaceChild(newBtn, themeBtn);
+
+                // 重新绑定事件
+                newBtn.onclick = window.toggleThemeNow;
+                console.log('Button event bound');
+            } else {
+                console.error('themeToggle button not found!');
+            }
+
+            console.log('=== initThemeSystem COMPLETE ===');
+
+        } catch (error) {
+            console.error('=== initThemeSystem ERROR ===', error);
+        }
     }
 
-    // Load saved theme
-    window.addEventListener('DOMContentLoaded', function() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        
-        const themeIcon = document.getElementById('themeIcon');
-        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-    });
+    // 3. 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', initThemeSystem);
+
+    // 4. 备用方案：如果DOMContentLoaded没触发，用setTimeout
+    setTimeout(initThemeSystem, 100);
+
+
+
+
 
     // Prevent default drag behaviors on whole document
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -726,4 +841,6 @@
             switchView('list');
         }
     });
+
+
 </script>
