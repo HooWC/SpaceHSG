@@ -1,47 +1,68 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SpaceHSG.Services;
+using System.DirectoryServices.AccountManagement;
+using Microsoft.AspNetCore.Http;
+using System;
 
 namespace SpaceHSG.Controllers
 {
+    [Route("[controller]/[action]")]
     public class AccountController : Controller
     {
-        // GET: /Account/Login
         [HttpGet]
         public IActionResult Login()
         {
-            // 指定完整路径到 Views/Home/Login.cshtml
+            if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Username")))
+            {
+                return RedirectToAction("Index", "Home");
+            }
             return View("~/Views/Home/Login.cshtml");
         }
 
-        // POST: /Account/Login
         [HttpPost]
         public IActionResult Login(string username, string password)
         {
-            // 验证用户名和密码
-            if (HardcodedUserService.ValidateUser(username, password, out string role))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                // 保存登录状态到 Session
-                HttpContext.Session.SetString("Username", username);
-                HttpContext.Session.SetString("Role", role);
-
-                // 登录成功，跳转到 Home/Index
-                return RedirectToAction("Index", "Home");
+                return Json(new { success = false, message = "Please enter username and password." });
             }
 
-            // 登录失败，显示错误信息
-            ViewBag.Error = "Invalid username or password";
+            try
+            {
+                using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, "hsg.local", username, password))
+                {
+                    UserPrincipal user = UserPrincipal.FindByIdentity(pc, username);
 
-            // 返回同一个登录页面
-            return View("~/Views/Home/Login.cshtml");
+                    if (user != null)
+                    {
+                        HttpContext.Session.SetString("Username", user.SamAccountName);
+                        HttpContext.Session.SetString("DisplayName", user.DisplayName ?? username);
+
+                        string dn = user.DistinguishedName;
+                        string role = dn.Contains("OU=IT") ? "IT_Admin" : "User";
+                        HttpContext.Session.SetString("Role", role);
+
+                        return Json(new { success = true, message = "Login Success！" });
+                    }
+                    else
+                    {
+                        return Json(new { success = false, message = "Verified, but user details are unavailable." });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorDetail = ex.Message;
+
+                if (errorDetail.Contains("locked out")) errorDetail = "Account Locked Out.";
+
+                return Json(new { success = false, message = "AD refuses to login: " + errorDetail, detail = ex.ToString() });
+            }
         }
 
-        // Logout: 清除 Session 并跳回登录页
         public IActionResult Logout()
         {
-            HttpContext.Session.Clear(); // 清空 Session
-            return RedirectToAction("Login"); // 跳回 Login 页面
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login");
         }
-
-
     }
 }

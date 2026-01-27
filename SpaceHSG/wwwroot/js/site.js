@@ -1,4 +1,4 @@
-﻿// wwwroot/js/site.js
+// wwwroot/js/site.js
 
 // 全局变量 - 这些需要在页面中设置
 let currentPath = '';
@@ -31,37 +31,6 @@ function initDomElements() {
 
 let dragCounter = 0;
 let deleteItemPath = '';
-
-// Toast Notification System
-function showToast(title, message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `fm-toast ${type}`;
-
-    const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-    };
-
-    toast.innerHTML = `
-        <div class="fm-toast-icon">${icons[type]}</div>
-        <div class="fm-toast-content">
-            <div class="fm-toast-title">${title}</div>
-            <div class="fm-toast-message">${message}</div>
-        </div>
-        <button class="fm-toast-close" onclick="this.parentElement.remove()">×</button>
-    `;
-
-    container.appendChild(toast);
-
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
-}
 
 // ============== 主题切换 ==============
 window.toggleThemeNow = function () {
@@ -259,8 +228,6 @@ function confirmDelete() {
 
 // ============== 核心：无刷新更新文件列表 ==============
 function refreshFileListWithoutReload() {
-    console.log('Refreshing file list without reload...');
-
     // 1. 获取当前文件容器
     const filesContainer = document.querySelector('.fm-files-container');
     if (!filesContainer) return;
@@ -308,7 +275,6 @@ function refreshFileListWithoutReload() {
                     }
 
                     showToast('Updated', 'File list refreshed', 'success');
-                    console.log('File list refreshed successfully');
                 } else {
                     throw new Error('Could not find file container');
                 }

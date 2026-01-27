@@ -1,24 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - SpaceHSG</title>
-
-    <!-- 登录页面的CSS -->
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
-
-    <!-- 主题变量和内联JS -->
-    <script>
-        // 立即设置主题，防止页面闪烁
-        (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
-        })();
-    </script>
+    <link rel="stylesheet" href="~/css/onedrive-style.css" asp-append-version="true" />
 </head>
 <body>
-    <!-- Toast Container - 在整个页面的右上角 -->
     <div class="fm-toast-container" id="toastContainer">
         @if (ViewBag.Error != null)
         {
@@ -38,33 +27,32 @@
 
     @RenderBody()
 
-    <!-- 登录页面的JS -->
+    <script src="~/js/toast.js" asp-append-version="true"></script>
     <script>
-        // Toast 关闭函数
-        function closeToast(button) {
-            const toast = button.closest('.fm-toast');
-            fadeOutToast(toast);
-        }
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        })();
 
-        function fadeOutToast(toast) {
-            if (!toast) return;
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.remove();
-                }
-            }, 300);
-        }
-
-        // 自动隐藏错误提示（5秒后）
         document.addEventListener('DOMContentLoaded', function() {
-            const errorToast = document.querySelector('.fm-toast-error');
-            if (errorToast) {
-                setTimeout(() => {
-                    fadeOutToast(errorToast);
-                }, 5000);
+            function tryShowErrorToast() {
+                const errorToast = document.querySelector('.fm-toast-error');
+                if (errorToast && typeof showToast === 'function') {
+                    const title = errorToast.querySelector('.fm-toast-title')?.textContent || 'Error';
+                    const message = errorToast.querySelector('.fm-toast-message')?.textContent || '';
+                    if (message) {
+                        showToast(title, message, 'error');
+                        setTimeout(() => {
+                            if (errorToast.parentNode) {
+                                errorToast.remove();
+                            }
+                        }, 100);
+                    }
+                } else if (errorToast) {
+                    setTimeout(tryShowErrorToast, 50);
+                }
             }
+            tryShowErrorToast();
         });
     </script>
 </body>

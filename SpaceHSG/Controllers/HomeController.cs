@@ -9,14 +9,14 @@ namespace SpaceHSG.Controllers
     public class HomeController : Controller
     {
         private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change to server
-        private const string RootPath = ""; // Root path identifier
+        private const string RootPath = "";
 
         public IActionResult Index(string path = "")
         {
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("Username")))
             {
                 return RedirectToAction("Login", "Account");
-            } // ====== LOGIN CHECK END ======
+            }
 
             try
             {
@@ -466,8 +466,6 @@ namespace SpaceHSG.Controllers
             return breadcrumbs;
         }
 
-        // 添加这个Action方法到HomeController
-        // 添加这个方法到HomeController中
         [HttpGet]
         public IActionResult GetFileList(string path = "")
         {
@@ -541,7 +539,6 @@ namespace SpaceHSG.Controllers
             }
         }
     }
-
 
 
     // Breadcrumb model
