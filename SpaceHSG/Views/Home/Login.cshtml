@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Login";
     Layout = "_LoginLayout";
 }
@@ -16,85 +16,39 @@
         <div class="login-header">
             <h1>SpaceHSG</h1>
             <p>Secure File Management System</p>
+            <small style="color: gray;">Domain: hsg.local</small>
         </div>
 
-        <form method="post" autocomplete="off">
-            <!-- 隐藏字段干扰 -->
+        <form id="loginForm" autocomplete="off">
             <input type="text" style="display:none" aria-hidden="true">
             <input type="password" style="display:none" aria-hidden="true">
 
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username"
-                       placeholder="Enter username"
-                       autocomplete="off"
-                       readonly
-                       onfocus="this.removeAttribute('readonly')"
-                       required />
+                <label>Domain Username</label>
+                <input type="text" id="username" name="username"
+                       placeholder="e.g. hsg\"
+                       required readonly onfocus="this.removeAttribute('readonly')" />
             </div>
 
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" name="password"
-                       placeholder="Enter password"
-                       autocomplete="off"
-                       readonly
-                       onfocus="this.removeAttribute('readonly')"
-                       required />
+                <input type="password" id="password" name="password"
+                       placeholder="Enter domain password"
+                       required readonly onfocus="this.removeAttribute('readonly')" />
             </div>
 
-            <button type="submit" class="login-btn">
+            <button type="button" id="loginBtn" class="login-btn">
                 Sign In
             </button>
         </form>
     </div>
 </div>
 
+<script src="~/js/Login/index.js" asp-append-version="true"></script>
+
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const themeSwitch = document.getElementById('themeSwitch');
-        const toggleText = document.getElementById('toggleText');
-        const loginForm = document.querySelector('form');
-
-        if (!themeSwitch) return;
-
-        // 初始化主题设置（布局中已经设置，这里更新UI）
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        themeSwitch.checked = savedTheme === 'dark';
-        if (toggleText) {
-            toggleText.innerText = savedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
-        }
-
-        // 切换主题
-        themeSwitch.addEventListener('change', (e) => {
-            e.stopPropagation();
-
-            const nextTheme = themeSwitch.checked ? 'dark' : 'light';
-
-            // 更新页面主题
-            document.documentElement.setAttribute('data-bs-theme', nextTheme);
-
-            // 保存到 localStorage
-            localStorage.setItem('theme', nextTheme);
-
-            // 更新文本
-            if (toggleText) {
-                toggleText.innerText = nextTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
-            }
-        });
-
-        // 在表单提交前确保主题保存到localStorage
-        if (loginForm) {
-            loginForm.addEventListener('submit', function() {
-                const currentTheme = themeSwitch.checked ? 'dark' : 'light';
-                localStorage.setItem('theme', currentTheme);
-            });
-        }
-
-        // 清空可能的自动填充
-        setTimeout(() => {
-            document.querySelector('input[name="username"]').value = '';
-            document.querySelector('input[name="password"]').value = '';
-        }, 200);
-    });
+    window.loginConfig = {
+        loginUrl: '@Url.Action("Login", "Account")',
+        homeUrl: '@Url.Action("Index", "Home")'
+    };
 </script>

@@ -347,3 +347,132 @@ input:checked + .slider {
     .fm-btn-logout:hover {
         background-color: var(--btn-hover, #c50f1f);
     }
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.login-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 400px;
+    pointer-events: none;
+}
+
+.login-toast {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    animation: toastSlideIn 0.3s ease;
+    border-left: 4px solid;
+    pointer-events: auto;
+    min-width: 300px;
+}
+
+    .login-toast.error {
+        border-left-color: #e81123;
+    }
+
+    .login-toast.success {
+        border-left-color: #107c10;
+    }
+
+    .login-toast.warning {
+        border-left-color: #ffb900;
+    }
+
+    .login-toast.info {
+        border-left-color: #0078d4;
+    }
+
+.login-toast-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.login-toast-content {
+    flex: 1;
+}
+
+.login-toast-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #201f1e;
+}
+
+.login-toast-message {
+    font-size: 14px;
+    color: #605e5c;
+    line-height: 1.4;
+}
+
+.login-toast-close {
+    background: none;
+    border: none;
+    color: #605e5c;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+    .login-toast-close:hover {
+        background: #f3f2f1;
+    }
+
+@media (prefers-color-scheme: dark) {
+    .login-toast {
+        background: #2d2d2d;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .login-toast-title {
+        color: #e8e8e8;
+    }
+
+    .login-toast-message {
+        color: #a0a0a0;
+    }
+
+    .login-toast-close {
+        color: #a0a0a0;
+    }
+
+        .login-toast-close:hover {
+            background: #3d3d3d;
+        }
+}
