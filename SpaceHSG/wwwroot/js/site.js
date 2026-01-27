@@ -1,8 +1,10 @@
-﻿// wwwroot/js/site.js
+﻿// wwwroot/js/site.js - 添加全选功能版本
 
 // 全局变量 - 这些需要在页面中设置
 let currentPath = '';
 let uploadUrl = '';
+let selectedItems = new Set(); // 存储选中的项目
+let isRefreshing = false; // 防止重复刷新
 
 // 初始化函数，需要在页面加载后调用
 function initializeFileManager(path, url) {
@@ -35,6 +37,11 @@ let deleteItemPath = '';
 // Toast Notification System
 function showToast(title, message, type = 'info') {
     const container = document.getElementById('toastContainer');
+    if (!container) {
+        console.warn('Toast container not found');
+        return;
+    }
+    
     const toast = document.createElement('div');
     toast.className = `fm-toast ${type}`;
 
@@ -115,7 +122,7 @@ function setupDragAndDrop() {
     document.addEventListener('dragenter', function (e) {
         if (e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
             dragCounter++;
-            if (dragCounter === 1) {
+            if (dragCounter === 1 && dropOverlay) {
                 dropOverlay.classList.add('active');
             }
         }
@@ -123,22 +130,23 @@ function setupDragAndDrop() {
 
     document.addEventListener('dragleave', function (e) {
         dragCounter--;
-        if (dragCounter === 0) {
+        if (dragCounter === 0 && dropOverlay) {
             dropOverlay.classList.remove('active');
         }
     });
 
-    // Handle file drop
+    // Handle file drop - 修改为支持文件夹结构
     document.addEventListener('drop', async function (e) {
         dragCounter = 0;
-        dropOverlay.classList.remove('active');
+        if (dropOverlay) dropOverlay.classList.remove('active');
 
         const items = e.dataTransfer.items;
 
-        if (items) {
-            const files = await getAllFileEntries(items);
-            if (files.length > 0) {
-                handleFiles(files);
+        if (items && items.length > 0) {
+            // 使用新的函数来处理文件和文件夹
+            const filesWithStructure = await processItemsWithStructure(items);
+            if (filesWithStructure.length > 0) {
+                handleFilesWithStructure(filesWithStructure);
             }
         } else {
             const files = e.dataTransfer.files;
@@ -154,8 +162,132 @@ function preventDefaults(e) {
     e.stopPropagation();
 }
 
-// ============== 文件操作函数 ==============
-// Upload files
+// ============== 文件夹结构处理 ==============
+// 处理拖拽项目，保持文件夹结构
+async function processItemsWithStructure(items) {
+    const results = [];
+
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+            const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+
+            if (entry) {
+                // 处理文件夹或文件
+                const itemResults = await processEntryWithStructure(entry, '');
+                results.push(...itemResults);
+            }
+        }
+    }
+
+    return results;
+}
+
+// 处理单个条目（文件或文件夹）
+async function processEntryWithStructure(entry, basePath) {
+    const results = [];
+
+    if (entry.isFile) {
+        // 处理文件
+        const file = await getFileFromEntry(entry);
+        if (file) {
+            results.push({
+                file: file,
+                relativePath: basePath ? `${basePath}/${entry.name}` : entry.name
+            });
+        }
+    } else if (entry.isDirectory) {
+        // 处理文件夹 - 递归处理
+        const dirReader = entry.createReader();
+        const entries = await readAllEntries(dirReader);
+
+        // 处理文件夹中的每个条目
+        const folderPath = basePath ? `${basePath}/${entry.name}` : entry.name;
+
+        for (const subEntry of entries) {
+            const subResults = await processEntryWithStructure(subEntry, folderPath);
+            results.push(...subResults);
+        }
+    }
+
+    return results;
+}
+
+// 读取目录中的所有条目
+async function readAllEntries(dirReader) {
+    const entries = [];
+
+    return new Promise((resolve, reject) => {
+        const readEntries = () => {
+            dirReader.readEntries((batch) => {
+                if (batch.length === 0) {
+                    resolve(entries);
+                    return;
+                }
+
+                entries.push(...batch);
+                readEntries();
+            }, reject);
+        };
+
+        readEntries();
+    });
+}
+
+// 获取文件条目
+function getFileFromEntry(fileEntry) {
+    return new Promise((resolve, reject) => {
+        fileEntry.file(resolve, reject);
+    });
+}
+
+// ============== 文件操作函数 - 已修正为立即刷新 ==============
+
+// Upload files with structure
+function handleFilesWithStructure(filesWithStructure) {
+    if (filesWithStructure.length === 0) return;
+
+    const formData = new FormData();
+
+    // 添加一个标记，表示这是带结构的文件上传
+    formData.append('preserveStructure', 'true');
+
+    for (let i = 0; i < filesWithStructure.length; i++) {
+        const item = filesWithStructure[i];
+        // 保持文件夹结构
+        formData.append(`files[${i}].file`, item.file);
+        formData.append(`files[${i}].relativePath`, item.relativePath);
+    }
+
+    if (uploadProgress) uploadProgress.classList.add('active');
+    if (uploadProgressBar) uploadProgressBar.style.width = '0%';
+
+    fetch(uploadUrl + '?path=' + encodeURIComponent(currentPath), {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (uploadProgress) uploadProgress.classList.remove('active');
+
+            if (data.success) {
+                showToast('Upload Successful', data.message, 'success');
+                // 延迟一点时间然后刷新，确保服务器处理完成
+                setTimeout(() => {
+                    refreshFileListAPI();
+                }, 500);
+            } else {
+                showToast('Upload Failed', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            if (uploadProgress) uploadProgress.classList.remove('active');
+            console.error('Upload error:', error);
+            showToast('Upload Error', 'Failed to upload files', 'error');
+        });
+}
+
+// Upload files (传统方式)
 function handleFiles(fileList) {
     if (fileList.length === 0) return;
 
@@ -164,8 +296,8 @@ function handleFiles(fileList) {
         formData.append('files', fileList[i]);
     }
 
-    uploadProgress.classList.add('active');
-    uploadProgressBar.style.width = '0%';
+    if (uploadProgress) uploadProgress.classList.add('active');
+    if (uploadProgressBar) uploadProgressBar.style.width = '0%';
 
     fetch(uploadUrl + '?path=' + encodeURIComponent(currentPath), {
         method: 'POST',
@@ -173,17 +305,20 @@ function handleFiles(fileList) {
     })
         .then(response => response.json())
         .then(data => {
-            uploadProgress.classList.remove('active');
+            if (uploadProgress) uploadProgress.classList.remove('active');
 
             if (data.success) {
                 showToast('Upload Successful', data.message, 'success');
-                refreshFileListWithoutReload();
+                // 延迟一点时间然后刷新，确保服务器处理完成
+                setTimeout(() => {
+                    refreshFileListAPI();
+                }, 500);
             } else {
                 showToast('Upload Failed', data.message, 'error');
             }
         })
         .catch(error => {
-            uploadProgress.classList.remove('active');
+            if (uploadProgress) uploadProgress.classList.remove('active');
             console.error('Upload error:', error);
             showToast('Upload Error', 'Failed to upload files', 'error');
         });
@@ -203,14 +338,16 @@ function setupFileInput() {
 
 // Create folder
 function createFolder() {
-    const folderName = document.getElementById('folderNameInput').value.trim();
+    const folderNameInput = document.getElementById('folderNameInput');
+    if (!folderNameInput) return;
+    
+    const folderName = folderNameInput.value.trim();
 
     if (!folderName) {
         showToast('Invalid Input', 'Please enter a folder name', 'warning');
         return;
     }
 
-    // 注意：这里需要使用完整URL，所以在页面中定义这个URL
     fetch('/Home/CreateFolder?path=' + encodeURIComponent(currentPath) + '&folderName=' + encodeURIComponent(folderName), {
         method: 'POST'
     })
@@ -219,7 +356,10 @@ function createFolder() {
             if (data.success) {
                 showToast('Success', data.message, 'success');
                 hideCreateFolderModal();
-                refreshFileListWithoutReload();
+                // 立即刷新文件列表
+                setTimeout(() => {
+                    refreshFileListAPI();
+                }, 300);
             } else {
                 showToast('Error', data.message, 'error');
             }
@@ -246,7 +386,10 @@ function confirmDelete() {
             if (data.success) {
                 showToast('Success', data.message, 'success');
                 hideDeleteModal();
-                refreshFileListWithoutReload();
+                // 立即刷新文件列表
+                setTimeout(() => {
+                    refreshFileListAPI();
+                }, 300);
             } else {
                 showToast('Error', data.message, 'error');
             }
@@ -257,18 +400,32 @@ function confirmDelete() {
         });
 }
 
-// ============== 核心：无刷新更新文件列表 ==============
-function refreshFileListWithoutReload() {
-    console.log('Refreshing file list without reload...');
+// ============== 核心：修复的刷新函数 ==============
 
-    // 1. 获取当前文件容器
+// 主要的刷新函数 - 使用API获取文件列表
+function refreshFileListAPI() {
+    if (isRefreshing) {
+        console.log('Already refreshing, skipping...');
+        return;
+    }
+    
+    console.log('Refreshing file list via API...');
+    isRefreshing = true;
+
     const filesContainer = document.querySelector('.fm-files-container');
-    if (!filesContainer) return;
+    if (!filesContainer) {
+        console.error('File container not found');
+        isRefreshing = false;
+        return;
+    }
 
-    // 2. 保存原始内容作为备份
+    // 保存当前选中状态
+    const selectedPaths = Array.from(selectedItems);
+    
+    // 保存原始内容
     const originalContent = filesContainer.innerHTML;
-
-    // 3. 显示加载状态
+    
+    // 显示加载状态
     filesContainer.innerHTML = `
         <div class="fm-files-header">
             <div class="fm-files-count">Refreshing...</div>
@@ -279,9 +436,75 @@ function refreshFileListWithoutReload() {
         </div>
     `;
 
-    // 4. 延迟执行，确保服务器有足够时间处理
+    // 使用专门的API端点获取文件列表
+    fetch(`/Home/GetFilesHtml?path=${encodeURIComponent(currentPath)}&t=${new Date().getTime()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            // 检查返回的HTML是否有效
+            if (!html || html.includes('Error:') || html.includes('error')) {
+                throw new Error('Invalid response from server');
+            }
+            
+            // 更新文件容器内容
+            filesContainer.innerHTML = html;
+            
+            // 重新绑定事件
+            reattachEventListeners();
+            
+            // 恢复视图设置
+            const savedView = localStorage.getItem('fileManagerView');
+            if (savedView === 'list') {
+                switchView('list');
+            }
+            
+            // 恢复选中状态
+            if (selectedPaths.length > 0) {
+                restoreSelection(selectedPaths);
+            }
+            
+            // 更新文件数量显示
+            updateFileCount();
+            
+            console.log('File list refreshed successfully via API');
+            showToast('Updated', 'File list refreshed', 'success');
+        })
+        .catch(error => {
+            console.error('Error refreshing file list via API:', error);
+            
+            // 回退到旧方法
+            console.log('Falling back to full page refresh method...');
+            refreshFileListWithoutReload();
+        })
+        .finally(() => {
+            isRefreshing = false;
+        });
+}
+
+// 旧的方法作为后备方案
+function refreshFileListWithoutReload() {
+    console.log('Refreshing file list without reload...');
+
+    const filesContainer = document.querySelector('.fm-files-container');
+    if (!filesContainer) return;
+
+    const originalContent = filesContainer.innerHTML;
+
+    filesContainer.innerHTML = `
+        <div class="fm-files-header">
+            <div class="fm-files-count">Refreshing...</div>
+        </div>
+        <div class="fm-empty" style="padding: 40px 20px;">
+            <div class="fm-spinner" style="margin: 0 auto 20px;"></div>
+            <div class="fm-empty-text">Updating file list...</div>
+        </div>
+    `;
+
     setTimeout(() => {
-        // 5. 使用fetch重新获取页面内容
         const pathParam = currentPath === '' ? '' : `?path=${encodeURIComponent(currentPath)}`;
         fetch(window.location.pathname + pathParam + '&t=' + new Date().getTime())
             .then(response => {
@@ -289,19 +512,14 @@ function refreshFileListWithoutReload() {
                 return response.text();
             })
             .then(html => {
-                // 6. 解析HTML，提取文件列表部分
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newFilesContainer = doc.querySelector('.fm-files-container');
 
                 if (newFilesContainer) {
-                    // 7. 替换当前文件容器内容
                     filesContainer.innerHTML = newFilesContainer.innerHTML;
-
-                    // 8. 重新绑定事件
                     reattachEventListeners();
-
-                    // 9. 恢复视图设置
+                    
                     const savedView = localStorage.getItem('fileManagerView');
                     if (savedView === 'list') {
                         switchView('list');
@@ -315,8 +533,6 @@ function refreshFileListWithoutReload() {
             })
             .catch(error => {
                 console.error('Error refreshing file list:', error);
-
-                // 失败时回退到页面重载
                 showToast('Refreshing', 'Reloading page...', 'info');
                 setTimeout(() => {
                     window.location.reload();
@@ -325,36 +541,349 @@ function refreshFileListWithoutReload() {
     }, 500);
 }
 
-// 重新绑定事件监听器
+// 更新文件数量显示
+function updateFileCount() {
+    const filesContainer = document.querySelector('.fm-files-container');
+    if (!filesContainer) return;
+    
+    const folders = filesContainer.querySelectorAll('.fm-badge-folder, .fm-grid-item-icon.fm-icon-folder').length;
+    const files = filesContainer.querySelectorAll('.fm-badge-file, .fm-grid-item-icon:not(.fm-icon-folder)').length;
+    
+    const countElement = filesContainer.querySelector('.fm-files-count');
+    if (countElement) {
+        countElement.textContent = `${folders} folders, ${files} files`;
+    }
+}
+
+// 恢复选中状态
+function restoreSelection(selectedPaths) {
+    selectedItems.clear();
+    
+    selectedPaths.forEach(path => {
+        const listItem = document.querySelector(`.fm-list-item[data-path="${escapeHtml(path)}"]`);
+        if (listItem) {
+            listItem.classList.add('selected');
+            const checkbox = listItem.querySelector('.fm-list-checkbox');
+            if (checkbox) checkbox.classList.add('checked');
+            selectedItems.add(path);
+        }
+    });
+    
+    updateBatchActions();
+}
+
+// HTML转义函数
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============== 批量选择功能 ==============
+
+// 切换项目选择状态
+function toggleItemSelection(checkboxContainer) {
+    const listItem = checkboxContainer.closest('.fm-list-item');
+    const checkbox = checkboxContainer.querySelector('.fm-list-checkbox');
+    const itemPath = listItem.dataset.path;
+
+    if (listItem.classList.contains('selected')) {
+        // 取消选择
+        listItem.classList.remove('selected');
+        checkbox.classList.remove('checked');
+        selectedItems.delete(itemPath);
+    } else {
+        // 选择
+        listItem.classList.add('selected');
+        checkbox.classList.add('checked');
+        selectedItems.add(itemPath);
+    }
+
+    // 更新批量操作按钮状态
+    updateBatchActions();
+}
+
+// 更新批量操作按钮状态
+function updateBatchActions() {
+    const batchActions = document.getElementById('batchActions');
+    const selectedNumber = document.getElementById('selectedNumber');
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const selectAllHeader = document.getElementById('selectAllHeader');
+
+    if (selectedItems.size > 0) {
+        // 显示批量操作区域
+        if (batchActions) batchActions.style.display = 'flex';
+
+        // 更新选中数量
+        if (selectedNumber) selectedNumber.textContent = selectedItems.size;
+
+        // 更新批量删除按钮文本
+        if (batchDeleteBtn) {
+            batchDeleteBtn.title = `Delete ${selectedItems.size} selected item(s)`;
+        }
+    } else {
+        // 隐藏批量操作区域
+        if (batchActions) batchActions.style.display = 'none';
+    }
+
+    // 更新全选复选框状态（列表视图）
+    if (selectAllCheckbox) {
+        const listItems = document.querySelectorAll('.fm-list-item');
+        const checkedItems = document.querySelectorAll('.fm-list-item.selected');
+
+        if (listItems.length === checkedItems.length && listItems.length > 0) {
+            selectAllCheckbox.classList.add('checked');
+        } else {
+            selectAllCheckbox.classList.remove('checked');
+        }
+    }
+
+    // 更新全选头部的状态
+    if (selectAllHeader) {
+        const totalItems = getTotalItemsCount();
+        const isAllSelected = selectedItems.size === totalItems && totalItems > 0;
+        
+        if (isAllSelected) {
+            selectAllHeader.classList.add('checked');
+        } else {
+            selectAllHeader.classList.remove('checked');
+        }
+    }
+}
+
+// 获取总项目数量
+function getTotalItemsCount() {
+    const listItems = document.querySelectorAll('.fm-list-item').length;
+    const gridItems = document.querySelectorAll('.fm-grid-item').length;
+    return Math.max(listItems, gridItems);
+}
+
+// 全选/取消全选（适用于列表视图和网格视图）
+function toggleSelectAll() {
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const listItems = document.querySelectorAll('.fm-list-item');
+    const gridItems = document.querySelectorAll('.fm-grid-item');
+    
+    // 确定当前是否是全选状态
+    let isCurrentlyAllSelected = false;
+    if (selectAllHeader) {
+        isCurrentlyAllSelected = selectAllHeader.classList.contains('checked');
+    } else if (selectAllCheckbox) {
+        isCurrentlyAllSelected = selectAllCheckbox.classList.contains('checked');
+    }
+    
+    if (isCurrentlyAllSelected) {
+        // 取消全选
+        clearSelection();
+    } else {
+        // 全选
+        selectAllItems();
+    }
+    
+    // 更新批量操作按钮
+    updateBatchActions();
+}
+
+// 选择所有项目（列表视图和网格视图）
+function selectAllItems() {
+    selectedItems.clear();
+    
+    // 选择所有列表视图项目
+    document.querySelectorAll('.fm-list-item').forEach(item => {
+        const itemPath = item.dataset.path;
+        item.classList.add('selected');
+        const checkbox = item.querySelector('.fm-list-checkbox');
+        if (checkbox) checkbox.classList.add('checked');
+        selectedItems.add(itemPath);
+    });
+    
+    // 选择所有网格视图项目
+    document.querySelectorAll('.fm-grid-item').forEach(item => {
+        // 为网格项目添加选中状态
+        item.classList.add('selected');
+        
+        // 尝试从data-path属性或onclick属性获取路径
+        let itemPath = item.dataset?.path || '';
+        if (!itemPath) {
+            const onClickAttr = item.getAttribute('onclick');
+            if (onClickAttr) {
+                const matches = onClickAttr.match(/path=(.*?)(&|'|")/);
+                if (matches && matches[1]) {
+                    itemPath = decodeURIComponent(matches[1]);
+                    // 添加到数据集以便后续使用
+                    item.dataset.path = itemPath;
+                }
+            }
+        }
+        
+        if (itemPath) {
+            selectedItems.add(itemPath);
+        }
+    });
+    
+    // 更新全选头部状态
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    
+    if (selectAllHeader) {
+        selectAllHeader.classList.add('checked');
+    }
+    if (selectAllCheckbox) {
+        selectAllCheckbox.classList.add('checked');
+    }
+}
+
+// 批量删除选中的项目
+function batchDelete() {
+    if (selectedItems.size === 0) {
+        showToast('No Selection', 'Please select items to delete', 'warning');
+        return;
+    }
+
+    // 确认删除
+    const confirmed = confirm(`Are you sure you want to delete ${selectedItems.size} selected item(s)?\nThis action cannot be undone.`);
+
+    if (!confirmed) return;
+
+    // 显示加载状态
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    const originalContent = batchDeleteBtn.innerHTML;
+    batchDeleteBtn.innerHTML = '<span class="fm-btn-icon">⏳</span> Deleting...';
+    batchDeleteBtn.disabled = true;
+
+    // 创建删除请求数组
+    const deletePromises = Array.from(selectedItems).map(itemPath => {
+        const formData = new FormData();
+        formData.append('path', itemPath);
+
+        return fetch('/Home/Delete', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json());
+    });
+
+    // 并行执行所有删除请求
+    Promise.all(deletePromises)
+        .then(results => {
+            const successCount = results.filter(r => r.success).length;
+            const failedCount = results.filter(r => !r.success).length;
+
+            // 显示结果
+            if (failedCount === 0) {
+                showToast('Success', `Successfully deleted ${successCount} item(s)`, 'success');
+            } else {
+                showToast('Partial Success',
+                    `Deleted ${successCount} item(s), failed to delete ${failedCount} item(s)`,
+                    'warning');
+            }
+
+            // 清除选择并刷新列表
+            clearSelection();
+            
+            // 立即刷新文件列表
+            setTimeout(() => {
+                refreshFileListAPI();
+            }, 500);
+        })
+        .catch(error => {
+            console.error('Batch delete error:', error);
+            showToast('Error', 'Failed to delete items', 'error');
+        })
+        .finally(() => {
+            // 恢复按钮状态
+            if (batchDeleteBtn) {
+                batchDeleteBtn.innerHTML = originalContent;
+                batchDeleteBtn.disabled = false;
+            }
+        });
+}
+
+// 清除所有选择
+function clearSelection() {
+    selectedItems.clear();
+
+    // 移除所有选中的样式（列表视图）
+    document.querySelectorAll('.fm-list-item.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    // 移除所有选中的样式（网格视图）
+    document.querySelectorAll('.fm-grid-item.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    document.querySelectorAll('.fm-list-checkbox.checked').forEach(checkbox => {
+        checkbox.classList.remove('checked');
+    });
+
+    // 更新全选复选框
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.classList.remove('checked');
+    }
+    
+    // 更新全选头部
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    if (selectAllHeader) {
+        selectAllHeader.classList.remove('checked');
+    }
+
+    // 隐藏批量操作区域
+    const batchActions = document.getElementById('batchActions');
+    if (batchActions) batchActions.style.display = 'none';
+
+    // 重置选中数量
+    const selectedNumber = document.getElementById('selectedNumber');
+    if (selectedNumber) selectedNumber.textContent = '0';
+}
+
+// ============== 重新绑定事件监听器 ==============
 function reattachEventListeners() {
-    // 为删除按钮重新绑定事件
+    // 为网格视图的删除按钮重新绑定事件
     document.querySelectorAll('.fm-delete-btn').forEach(btn => {
         btn.onclick = function (e) {
             e.stopPropagation();
             const gridItem = this.closest('.fm-grid-item');
             const itemName = gridItem.querySelector('.fm-grid-item-name').textContent;
+            const itemPath = gridItem.dataset?.path || '';
 
-            // 从onclick属性中提取路径
-            const onClickAttr = gridItem.getAttribute('onclick');
-            if (onClickAttr) {
-                const matches = onClickAttr.match(/'(.*?)'/g);
-                if (matches && matches[0]) {
-                    const url = matches[0].replace(/'/g, '');
-                    const isFolder = url.includes('Index');
-                    const path = isFolder ?
-                        url.split('path=')[1] :
-                        url.split('path=')[1];
+            if (itemPath) {
+                showDeleteModal(itemName, decodeURIComponent(itemPath));
+            } else {
+                // 从onclick属性中提取路径
+                const onClickAttr = gridItem.getAttribute('onclick');
+                if (onClickAttr) {
+                    const matches = onClickAttr.match(/'(.*?)'/g);
+                    if (matches && matches[0]) {
+                        const url = matches[0].replace(/'/g, '');
+                        const isFolder = url.includes('Index');
+                        const path = isFolder ?
+                            url.split('path=')[1] :
+                            url.split('path=')[1];
 
-                    if (path) {
-                        showDeleteModal(itemName, decodeURIComponent(path));
+                        if (path) {
+                            showDeleteModal(itemName, decodeURIComponent(path));
+                        }
                     }
                 }
             }
         };
     });
 
-    // 为列表视图删除按钮重新绑定事件
-    document.querySelectorAll('.fm-list-actions .delete-btn').forEach(btn => {
+    // 为列表视图操作按钮重新绑定事件
+    document.querySelectorAll('.fm-list-actions .download-icon-btn').forEach(btn => {
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            const listItem = this.closest('.fm-list-item');
+            const itemPath = listItem.dataset.path;
+            window.location.href = '/Home/Download?path=' + encodeURIComponent(itemPath);
+        };
+    });
+
+    document.querySelectorAll('.fm-list-actions .delete-icon-btn').forEach(btn => {
         btn.onclick = function (e) {
             e.stopPropagation();
             const listItem = this.closest('.fm-list-item');
@@ -363,55 +892,68 @@ function reattachEventListeners() {
             showDeleteModal(name, path);
         };
     });
+
+    // 为列表视图打开按钮重新绑定事件
+    document.querySelectorAll('.fm-list-actions .open-icon-btn').forEach(btn => {
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            const listItem = this.closest('.fm-list-item');
+            const itemPath = listItem.dataset.path;
+            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
+        };
+    });
+
+    // 为列表视图复选框重新绑定事件
+    document.querySelectorAll('.fm-list-checkbox-container').forEach(container => {
+        container.onclick = function (e) {
+            e.stopPropagation();
+            toggleItemSelection(this);
+        };
+    });
+
+    // 为全选复选框绑定事件
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.onclick = function (e) {
+            e.stopPropagation();
+            toggleSelectAll();
+        };
+    }
+
+    // 为全选头部按钮绑定事件
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    if (selectAllHeader) {
+        selectAllHeader.onclick = function (e) {
+            e.stopPropagation();
+            toggleSelectAll();
+        };
+    }
+
+    // 为批量删除按钮绑定事件
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    if (batchDeleteBtn) {
+        batchDeleteBtn.onclick = function (e) {
+            e.stopPropagation();
+            batchDelete();
+        };
+    }
 }
 
 // ============== 其他辅助函数 ==============
-// 递归获取目录条目
+// 保持兼容性的旧函数
 async function getAllFileEntries(dataTransferItemList) {
-    let fileEntries = [];
-    let queue = [];
-
-    for (let i = 0; i < dataTransferItemList.length; i++) {
-        const item = dataTransferItemList[i];
-        if (item.kind === 'file') {
-            const entry = item.webkitGetAsEntry();
-            if (entry) queue.push(entry);
-        }
-    }
-
-    while (queue.length > 0) {
-        let entry = queue.shift();
-        if (entry.isFile) {
-            const file = await getFileFromEntry(entry);
-            fileEntries.push(file);
-        } else if (entry.isDirectory) {
-            const entries = await readAllDirectoryEntries(entry.createReader());
-            queue.push(...entries);
-        }
-    }
-
-    return fileEntries;
+    // 回退到新函数
+    return processItemsWithStructure(dataTransferItemList);
 }
 
 async function readAllDirectoryEntries(directoryReader) {
-    let entries = [];
-    let readEntries = await readEntriesPromise(directoryReader);
-    while (readEntries.length > 0) {
-        entries.push(...readEntries);
-        readEntries = await readEntriesPromise(directoryReader);
-    }
-    return entries;
+    // 回退到新函数
+    return readAllEntries(directoryReader);
 }
 
 function readEntriesPromise(directoryReader) {
     return new Promise((resolve, reject) => {
         directoryReader.readEntries(resolve, reject);
-    });
-}
-
-function getFileFromEntry(fileEntry) {
-    return new Promise((resolve, reject) => {
-        fileEntry.file(resolve, reject);
     });
 }
 
@@ -466,6 +1008,9 @@ function switchView(view) {
         if (gridBtn) gridBtn.classList.add('active');
         if (listBtn) listBtn.classList.remove('active');
         localStorage.setItem('fileManagerView', 'grid');
+
+        // 切换到网格视图时清除选择
+        clearSelection();
     } else {
         if (gridView) gridView.style.display = 'none';
         if (listView) listView.style.display = 'flex';
@@ -495,13 +1040,9 @@ function navigateToItemByElement(element) {
     }
 }
 
-// Toggle item selection with checkbox
-function toggleItemSelection(checkboxContainer) {
-    const listItem = checkboxContainer.closest('.fm-list-item');
-    const checkbox = checkboxContainer.querySelector('.fm-list-checkbox');
-
-    if (listItem) listItem.classList.toggle('selected');
-    if (checkbox) checkbox.classList.toggle('checked');
+// 旧的函数（保持兼容性）
+function toggleItemSelectionOld(checkboxContainer) {
+    toggleItemSelection(checkboxContainer);
 }
 
 // Show delete modal from element
@@ -512,8 +1053,10 @@ function showDeleteModalFromElement(button) {
     showDeleteModal(name, path);
 }
 
-// 页面加载完成后初始化
+// ============== 页面加载完成后初始化 ==============
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('File Manager Initializing...');
+    
     // 初始化DOM元素
     initDomElements();
 
@@ -554,11 +1097,33 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // 初始化批量选择功能
+    reattachEventListeners();
+
     // 自动更新年份
-    document.addEventListener('DOMContentLoaded', function () {
-        const yearElement = document.getElementById('year');
-        if (yearElement) {
-            yearElement.textContent = new Date().getFullYear();
-        }
-    });
+    const yearElement = document.getElementById('year');
+    if (yearElement) {
+        yearElement.textContent = new Date().getFullYear();
+    }
+
+    console.log('File Manager Initialized Successfully');
 });
+
+// ============== 全局导出 ==============
+// 将所有必要的函数导出到全局作用域
+window.refreshFileList = refreshFileListAPI;
+window.refreshFileListWithoutReload = refreshFileListWithoutReload;
+window.showToast = showToast;
+window.createFolder = createFolder;
+window.confirmDelete = confirmDelete;
+window.showCreateFolderModal = showCreateFolderModal;
+window.hideCreateFolderModal = hideCreateFolderModal;
+window.showDeleteModal = showDeleteModal;
+window.hideDeleteModal = hideDeleteModal;
+window.batchDelete = batchDelete;
+window.clearSelection = clearSelection;
+window.switchView = switchView;
+window.navigateToItem = navigateToItem;
+window.navigateToItemByElement = navigateToItemByElement;
+window.toggleSelectAll = toggleSelectAll;
+window.selectAllItems = selectAllItems;

@@ -12,6 +12,10 @@
     --text-secondary: #605e5c;
     --shadow-sm: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 0.3px 0.9px 0 rgba(0,0,0,.108);
     --shadow-md: 0 3.2px 7.2px 0 rgba(0,0,0,.132), 0 0.6px 1.8px 0 rgba(0,0,0,.108);
+    --selected-bg: rgba(0, 120, 212, 0.1);
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --border-color: #e0e0e0;
+    --card-bg: #fff;
 }
 
 /* Dark Theme */
@@ -27,6 +31,10 @@
     --text-secondary: #a0a0a0;
     --shadow-sm: 0 1.6px 3.6px 0 rgba(0,0,0,.4), 0 0.3px 0.9px 0 rgba(0,0,0,.3);
     --shadow-md: 0 3.2px 7.2px 0 rgba(0,0,0,.4), 0 0.6px 1.8px 0 rgba(0,0,0,.3);
+    --selected-bg: rgba(0, 120, 212, 0.2);
+    --hover-bg: rgba(255, 255, 255, 0.1);
+    --border-color: #444;
+    --card-bg: #252525;
 }
 
 
@@ -40,9 +48,6 @@
         color: var(--text-primary);
         border: 1px solid white;
     }
-
-/* ================== 全局背景修复 ================== */
-
 
 /* ================== 全局背景修复 ================== */
 html, body {
@@ -262,20 +267,29 @@ body {
     color: var(--text-primary);
 }
 
+/* 修改这部分 */
 .fm-files-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 20px;
     padding: 12px 20px;
-    background: var(--bg-hover); /* 改为更深的背景 */
+    background: var(--bg-hover);
     border-bottom: 1px solid var(--border-color);
-    color: var(--text-secondary);
 }
 
+.fm-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1; /* 占据可用空间 */
+}
+
+/* 文件数量统计 - 紧挨着全选按钮 */
 .fm-files-count {
     font-size: 14px;
     color: var(--text-secondary);
     font-weight: 500;
+    margin: 0;
 }
 
 /* Grid View */
@@ -411,7 +425,7 @@ body {
 }
 
 .fm-action-btn {
-    width: 100px;
+    width: 50px;
     height: 25px;
     padding: 0 5px;
     font-size: 13px;
@@ -1030,3 +1044,247 @@ a {
     background-color: var(--primary-blue-light);
     color: var(--text-primary);
 }
+
+/* ============== 列表视图操作图标按钮 ============== */
+.fm-list-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.fm-action-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: var(--card-bg);
+}
+
+    .fm-action-btn:hover {
+        background-color: var(--hover-bg);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+.fm-action-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* 网格视图删除按钮样式（已经是图标） */
+.fm-grid-item .fm-delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    font-size: 14px;
+    z-index: 2;
+}
+
+.fm-grid-item:hover .fm-delete-btn {
+    opacity: 1;
+}
+
+.fm-grid-item .fm-delete-btn:hover {
+    background: #e81123;
+}
+
+/* ============== 批量操作样式 ============== */
+.fm-files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.fm-batch-actions {
+    display: none;
+    align-items: center;
+    gap: 12px;
+}
+
+.fm-selected-count {
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    background-color: var(--hover-bg);
+    border-radius: 4px;
+}
+
+#selectedCount #selectedNumber {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fm-btn-danger {
+    background-color: #e81123;
+    color: white;
+    border: none;
+}
+
+    .fm-btn-danger:hover {
+        background-color: #c50f1f;
+    }
+
+/* 列表视图全选复选框 */
+.fm-list-header .fm-list-checkbox-container {
+    padding: 0 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fm-list-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .fm-list-checkbox.checked {
+        background-color: #0078d4;
+        border-color: #0078d4;
+    }
+
+        .fm-list-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+/* 列表项目选中状态 */
+.fm-list-item.selected {
+    background-color: var(--selected-bg, rgba(0, 120, 212, 0.1));
+}
+
+/* 更新已有的复选框容器样式 */
+.fm-list-checkbox-container {
+    padding: 0 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 更新现有列表项复选框样式 */
+.fm-list-item .fm-list-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .fm-list-item .fm-list-checkbox.checked {
+        background-color: #0078d4;
+        border-color: #0078d4;
+    }
+
+        .fm-list-item .fm-list-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* 全选按钮样式 - 与现有按钮一致 */
+.fm-select-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-gray);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+    .fm-select-all-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--text-secondary);
+    }
+
+    .fm-select-all-btn.checked {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: white;
+    }
+
+        .fm-select-all-btn.checked:hover {
+            background: var(--primary-blue-hover);
+            border-color: var(--primary-blue-hover);
+        }
+
+.fm-select-all-icon {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.fm-select-all-btn.checked .fm-select-all-icon {
+    background: white;
+    border-color: white;
+}
+
+    .fm-select-all-btn.checked .fm-select-all-icon::after {
+        content: '✓';
+        color: var(--primary-blue);
+        font-size: 12px;
+        font-weight: bold;
+    }
