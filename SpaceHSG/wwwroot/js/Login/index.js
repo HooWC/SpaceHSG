@@ -43,24 +43,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         if (typeof showToast === 'function') {
                             showToast('Login Failed', result.message || 'Invalid credentials', 'error');
-                        } else {
-                            alert(result.message || 'Invalid credentials');
                         }
                     }
                 } else {
                     console.error('HTTP Error:', response.status);
                     if (typeof showToast === 'function') {
                         showToast('Server Error', `Server returned error: ${response.status}`, 'error');
-                    } else {
-                        alert(`Server Error: ${response.status}`);
                     }
                 }
             } catch (err) {
                 console.error('AJAX Failed Request:', err);
                 if (typeof showToast === 'function') {
                     showToast('Network Error', 'Network request failed. Please check your connection.', 'error');
-                } else {
-                    alert('Network request failed. Please check your connection.');
                 }
             }
         });

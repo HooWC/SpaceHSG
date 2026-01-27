@@ -540,7 +540,6 @@ namespace SpaceHSG.Controllers
         }
     }
 
-
     // Breadcrumb model
     public class Breadcrumb
     {

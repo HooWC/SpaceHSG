@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using System.DirectoryServices.AccountManagement;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -25,6 +25,17 @@ namespace SpaceHSG.Controllers
             {
                 return Json(new { success = false, message = "Please enter username and password." });
             }
+
+            // ===== HARDCODED ADMIN USER (admin/admin) - remove this in production =====
+            if (username == "admin" && password == "admin")
+            {
+                HttpContext.Session.SetString("Username", "admin");
+                HttpContext.Session.SetString("DisplayName", "Administrator");
+                HttpContext.Session.SetString("Role", "IT_Admin");
+
+                return Json(new { success = true, message = "Login Success (hardcoded admin)." });
+            }
+            // ===================== END HARDCODED ADMIN BLOCK ==========================
 
             try
             {

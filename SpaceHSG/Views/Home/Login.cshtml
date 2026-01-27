@@ -44,12 +44,11 @@
     </div>
 </div>
 
-@* 用 Razor 生成正确 URL，注入到全局变量 *@
+<script src="~/js/Login/index.js" asp-append-version="true"></script>
+
 <script>
     window.loginConfig = {
         loginUrl: '@Url.Action("Login", "Account")',
         homeUrl: '@Url.Action("Index", "Home")'
     };
 </script>
-
-<script src="~/js/Login/index.js" asp-append-version="true"></script>
