@@ -1,4 +1,4 @@
-// wwwroot/js/site.js - 添加全选功能版本
+﻿// wwwroot/js/site.js - 添加全选功能版本
 
 // 全局变量 - 这些需要在页面中设置
 let currentPath = '';
@@ -33,6 +33,42 @@ function initDomElements() {
 
 let dragCounter = 0;
 let deleteItemPath = '';
+
+// Toast Notification System
+function showToast(title, message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) {
+        console.warn('Toast container not found');
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `fm-toast ${type}`;
+
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    toast.innerHTML = `
+        <div class="fm-toast-icon">${icons[type]}</div>
+        <div class="fm-toast-content">
+            <div class="fm-toast-title">${title}</div>
+            <div class="fm-toast-message">${message}</div>
+        </div>
+        <button class="fm-toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
 
 // ============== 主题切换 ==============
 window.toggleThemeNow = function () {
