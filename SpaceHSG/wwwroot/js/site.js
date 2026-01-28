@@ -8,6 +8,7 @@ let isRefreshing = false; // 防止重复刷新
 
 // 初始化函数，需要在页面加载后调用
 function initializeFileManager(path, url) {
+    console.log('Initializing File Manager with path:', path, 'upload URL:', url);
     currentPath = path;
     uploadUrl = url;
 
@@ -18,6 +19,9 @@ function initializeFileManager(path, url) {
     if (savedView === 'list') {
         switchView('list');
     }
+
+    // 调试信息
+    console.log('Current path set to:', currentPath);
 }
 
 // Elements - 这些在DOM加载后获取
@@ -302,21 +306,45 @@ function setupFileInput() {
 
 // Create folder
 function createFolder() {
+    console.log('=== CREATE FOLDER DEBUG (CLIENT) ===');
+
     const folderNameInput = document.getElementById('folderNameInput');
     if (!folderNameInput) return;
 
-    const folderName = folderNameInput.value.trim();
+    let folderName = folderNameInput.value.trim();
+    console.log('Original folder name:', folderName);
+
+    // 记录原始字符串的字符代码
+    console.log('Folder name character codes:');
+    for (let i = 0; i < folderName.length; i++) {
+        console.log(`  [${i}]: '${folderName[i]}' = ${folderName.charCodeAt(i)}`);
+    }
+
+    // 清理文件夹名：移除控制字符
+    folderName = folderName.replace(/[\x00-\x1F\x7F]/g, '');
+    console.log('Cleaned folder name:', folderName);
 
     if (!folderName) {
-        showToast('Invalid Input', 'Please enter a folder name', 'warning');
+        showToast('Invalid Input', 'Please enter a valid folder name', 'warning');
         return;
     }
 
-    fetch('/Home/CreateFolder?path=' + encodeURIComponent(currentPath) + '&folderName=' + encodeURIComponent(folderName), {
+    console.log('Current path:', currentPath);
+    console.log('Sending request with params:');
+    console.log('  path:', currentPath);
+    console.log('  folderName:', folderName);
+
+    // 使用 URLSearchParams 确保正确编码
+    const params = new URLSearchParams();
+    params.append('path', currentPath || '');
+    params.append('folderName', folderName);
+
+    fetch('/Home/CreateFolder?' + params.toString(), {
         method: 'POST'
     })
         .then(response => response.json())
         .then(data => {
+            console.log('Create folder response:', data);
             if (data.success) {
                 showToast('Success', data.message, 'success');
                 hideCreateFolderModal();
@@ -331,6 +359,9 @@ function createFolder() {
         .catch(error => {
             console.error('Create folder error:', error);
             showToast('Error', 'Network error occurred', 'error');
+        })
+        .finally(() => {
+            console.log('=== END CREATE FOLDER DEBUG ===');
         });
 }
 
@@ -386,13 +417,19 @@ function refreshFileListAPI() {
     // 保存当前选中状态
     const selectedPaths = Array.from(selectedItems);
 
-    // 保存原始内容
-    const originalContent = filesContainer.innerHTML;
-
     // 显示加载状态
+    const originalContent = filesContainer.innerHTML;
     filesContainer.innerHTML = `
         <div class="fm-files-header">
-            <div class="fm-files-count">Refreshing...</div>
+            <div class="fm-header-left">
+                <div class="fm-select-all-container">
+                    <button class="fm-select-all-btn" id="selectAllHeader" title="Select all items">
+                        <span class="fm-select-all-icon"></span>
+                        All
+                    </button>
+                </div>
+                <div class="fm-files-count">Refreshing...</div>
+            </div>
         </div>
         <div class="fm-empty" style="padding: 40px 20px;">
             <div class="fm-spinner" style="margin: 0 auto 20px;"></div>
@@ -410,12 +447,34 @@ function refreshFileListAPI() {
         })
         .then(html => {
             // 检查返回的HTML是否有效
-            if (!html || html.includes('Error:') || html.includes('error')) {
+            if (!html || html.includes('fm-error') || html.includes('Error:')) {
                 throw new Error('Invalid response from server');
             }
 
-            // 更新文件容器内容
-            filesContainer.innerHTML = html;
+            // 更新整个文件容器内容
+            filesContainer.innerHTML = `
+                <div class="fm-files-header">
+                    <div class="fm-header-left">
+                        <div class="fm-select-all-container">
+                            <button class="fm-select-all-btn" id="selectAllHeader" title="Select all items">
+                                <span class="fm-select-all-icon"></span>
+                                All
+                            </button>
+                        </div>
+                        <div class="fm-files-count"></div>
+                    </div>
+                    <div class="fm-batch-actions" id="batchActions" style="display: none;">
+                        <div class="fm-selected-count" id="selectedCount">
+                            <span id="selectedNumber">0</span> selected
+                        </div>
+                        <button class="fm-btn fm-btn-danger" id="batchDeleteBtn" title="Delete selected items">
+                            <span class="fm-btn-icon">🗑️</span>
+                            Delete Selected
+                        </button>
+                    </div>
+                </div>
+                ${html}
+            `;
 
             // 重新绑定事件
             reattachEventListeners();
@@ -435,20 +494,25 @@ function refreshFileListAPI() {
             updateFileCount();
 
             console.log('File list refreshed successfully via API');
-            showToast('Updated', 'File list refreshed', 'success');
+
+            // 只在需要时显示成功提示
+            if (!selectedPaths.length) {
+                showToast('Updated', 'File list refreshed', 'success');
+            }
         })
         .catch(error => {
             console.error('Error refreshing file list via API:', error);
 
-            // 回退到旧方法
-            console.log('Falling back to full page refresh method...');
-            refreshFileListWithoutReload();
+            // 恢复原始内容
+            filesContainer.innerHTML = originalContent;
+
+            // 显示错误提示
+            showToast('Refresh Error', 'Failed to refresh file list. Please try again.', 'error');
         })
         .finally(() => {
             isRefreshing = false;
         });
 }
-
 // 旧的方法作为后备方案
 function refreshFileListWithoutReload() {
     console.log('Refreshing file list without reload...');
@@ -837,7 +901,17 @@ function reattachEventListeners() {
         };
     });
 
-    // 为列表视图操作按钮重新绑定事件
+    // 为列表视图打开按钮重新绑定事件
+    document.querySelectorAll('.fm-list-actions .open-icon-btn').forEach(btn => {
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            const listItem = this.closest('.fm-list-item');
+            const itemPath = listItem.dataset.path;
+            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
+        };
+    });
+
+    // 为列表视图下载按钮重新绑定事件
     document.querySelectorAll('.fm-list-actions .download-icon-btn').forEach(btn => {
         btn.onclick = function (e) {
             e.stopPropagation();
@@ -847,6 +921,7 @@ function reattachEventListeners() {
         };
     });
 
+    // 为列表视图删除按钮重新绑定事件
     document.querySelectorAll('.fm-list-actions .delete-icon-btn').forEach(btn => {
         btn.onclick = function (e) {
             e.stopPropagation();
@@ -854,16 +929,6 @@ function reattachEventListeners() {
             const name = listItem.dataset.name;
             const path = listItem.dataset.path;
             showDeleteModal(name, path);
-        };
-    });
-
-    // 为列表视图打开按钮重新绑定事件
-    document.querySelectorAll('.fm-list-actions .open-icon-btn').forEach(btn => {
-        btn.onclick = function (e) {
-            e.stopPropagation();
-            const listItem = this.closest('.fm-list-item');
-            const itemPath = listItem.dataset.path;
-            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
         };
     });
 
@@ -986,6 +1051,10 @@ function switchView(view) {
 
 // Navigate to item
 function navigateToItem(url) {
+    // 从URL中提取路径以便调试
+    const urlObj = new URL(url, window.location.origin);
+    const pathParam = urlObj.searchParams.get('path');
+    console.log('Navigating to:', url, 'Path:', pathParam);
     window.location.href = url;
 }
 

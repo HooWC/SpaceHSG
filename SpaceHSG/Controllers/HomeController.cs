@@ -1,14 +1,16 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using SpaceHSG.Models;
 
 namespace SpaceHSG.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change to server
+        private readonly string basePath = @"C:\sharedrive"; // Change to server
         private const string RootPath = ""; // Root path identifier
 
         public IActionResult Index(string path = "")
@@ -17,6 +19,9 @@ namespace SpaceHSG.Controllers
             {
                 return RedirectToAction("Login", "Account");
             } // ====== LOGIN CHECK END ======
+
+            Console.WriteLine($"=== INDEX DEBUG ===");
+            Console.WriteLine($"Index called with path parameter: '{path}'");
 
             try
             {
@@ -83,6 +88,9 @@ namespace SpaceHSG.Controllers
                     GetRelativePath(parentPath, basePath) : RootPath;
                 ViewBag.Breadcrumbs = breadcrumbs;
                 ViewBag.IsRoot = string.IsNullOrEmpty(path) || path == RootPath;
+
+                Console.WriteLine($"ViewBag.RelativePath set to: '{path}'");
+                Console.WriteLine($"=== END INDEX DEBUG ===");
 
                 return View();
             }
@@ -325,57 +333,135 @@ namespace SpaceHSG.Controllers
         }
 
         // Create new folder
+        // Create new folder - 使用验证方法
         [HttpPost]
         public IActionResult CreateFolder(string path = "", string folderName = "")
         {
             try
             {
+                Console.WriteLine($"=== CREATE FOLDER DEBUG ===");
+                Console.WriteLine($"Received path parameter: '{path}'");
+                Console.WriteLine($"Received folderName parameter: '{folderName}'");
+
+                // 记录原始参数的十六进制值，以便查看特殊字符
+                Console.WriteLine($"path bytes: {BitConverter.ToString(Encoding.UTF8.GetBytes(path ?? ""))}");
+                Console.WriteLine($"folderName bytes: {BitConverter.ToString(Encoding.UTF8.GetBytes(folderName ?? ""))}");
+
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
                     return BadRequest(new { success = false, message = "Folder name cannot be empty." });
                 }
 
-                // Validate folder name (no invalid characters)
-                if (folderName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+                // 清理文件夹名：移除控制字符和无效字符
+                folderName = CleanFileName(folderName);
+                Console.WriteLine($"Cleaned folderName: '{folderName}'");
+
+                if (string.IsNullOrWhiteSpace(folderName))
+                {
+                    return BadRequest(new { success = false, message = "Folder name contains only invalid characters." });
+                }
+
+                // Validate folder name
+                if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 {
                     return BadRequest(new { success = false, message = "Folder name contains invalid characters." });
                 }
 
-                // Determine target directory
-                string targetDirectory;
-                if (string.IsNullOrEmpty(path) || path == RootPath)
+                // 清理路径参数
+                if (!string.IsNullOrEmpty(path))
                 {
-                    targetDirectory = basePath;
-                }
-                else
-                {
-                    var decodedPath = Uri.UnescapeDataString(path);
-                    targetDirectory = System.IO.Path.Combine(basePath, decodedPath);
-
-                    // Security check
-                    if (!targetDirectory.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return Forbid();
-                    }
+                    path = CleanPath(path);
+                    Console.WriteLine($"Cleaned path: '{path}'");
                 }
 
-                var newFolderPath = System.IO.Path.Combine(targetDirectory, folderName);
+                // 使用验证方法获取目标目录
+                string targetDirectory = ValidateAndNormalizePath(path);
+                Console.WriteLine($"Target directory after validation: '{targetDirectory}'");
+
+                var newFolderPath = Path.Combine(targetDirectory, folderName);
+                Console.WriteLine($"New folder path: '{newFolderPath}'");
 
                 // Check if folder already exists
-                if (System.IO.Directory.Exists(newFolderPath))
+                if (Directory.Exists(newFolderPath))
                 {
+                    Console.WriteLine($"Folder already exists at: '{newFolderPath}'");
                     return BadRequest(new { success = false, message = "Folder already exists." });
                 }
 
                 // Create the folder
-                System.IO.Directory.CreateDirectory(newFolderPath);
+                Directory.CreateDirectory(newFolderPath);
+                Console.WriteLine($"Folder created successfully at: '{newFolderPath}'");
 
-                return Ok(new { success = true, message = $"Folder '{folderName}' created successfully." });
+                var relativePath = GetRelativePath(newFolderPath, basePath);
+                Console.WriteLine($"Relative path for new folder: '{relativePath}'");
+                Console.WriteLine($"=== END DEBUG ===");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Folder '{folderName}' created successfully.",
+                    newPath = relativePath
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"UnauthorizedAccessException: {ex.Message}");
+                return Forbid();
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception in CreateFolder: {ex}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return BadRequest(new { success = false, message = $"Create folder error: {ex.Message}" });
             }
+        }
+
+        // 添加新的辅助方法：清理文件名中的控制字符
+        private string CleanFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return fileName;
+
+            // 移除控制字符（ASCII 0-31，127）
+            var cleaned = new StringBuilder();
+            foreach (char c in fileName)
+            {
+                if (!char.IsControl(c) && c != 127) // 保留非控制字符
+                {
+                    cleaned.Append(c);
+                }
+                else
+                {
+                    Console.WriteLine($"Removed control character: {(int)c} from filename");
+                }
+            }
+
+            // 移除开头和结尾的空格
+            return cleaned.ToString().Trim();
+        }
+
+        // 添加新的辅助方法：清理路径中的控制字符
+        private string CleanPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+
+            // 解码URL编码
+            var decoded = Uri.UnescapeDataString(path);
+
+            // 移除控制字符
+            var cleaned = new StringBuilder();
+            foreach (char c in decoded)
+            {
+                if (!char.IsControl(c) && c != 127) // 保留非控制字符
+                {
+                    cleaned.Append(c);
+                }
+                else
+                {
+                    Console.WriteLine($"Removed control character: {(int)c} from path");
+                }
+            }
+
+            return cleaned.ToString();
         }
 
         // Delete file or folder
@@ -480,13 +566,24 @@ namespace SpaceHSG.Controllers
         }
 
         // Helper method: Get relative path
+        // Helper method: Get relative path
         private string GetRelativePath(string fullPath, string basePath)
         {
+            Console.WriteLine($"GetRelativePath called with:");
+            Console.WriteLine($"  fullPath: '{fullPath}'");
+            Console.WriteLine($"  basePath: '{basePath}'");
+
             if (fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
             {
                 var relative = fullPath.Substring(basePath.Length).TrimStart(System.IO.Path.DirectorySeparatorChar);
-                return string.IsNullOrEmpty(relative) ? RootPath : relative;
+                var result = string.IsNullOrEmpty(relative) ? RootPath : relative;
+
+                Console.WriteLine($"  Result: '{result}'");
+                return result;
             }
+
+            Console.WriteLine($"  ERROR: fullPath does not start with basePath");
+            Console.WriteLine($"  Returning fullPath: '{fullPath}'");
             return fullPath;
         }
 
@@ -534,6 +631,38 @@ namespace SpaceHSG.Controllers
             }
 
             return breadcrumbs;
+        }
+
+        // 辅助方法：验证和规范化路径
+        private string ValidateAndNormalizePath(string relativePath)
+        {
+            Console.WriteLine($"ValidateAndNormalizePath called with: '{relativePath}'");
+
+            if (string.IsNullOrEmpty(relativePath) || relativePath == RootPath)
+            {
+                Console.WriteLine($"Returning basePath: '{basePath}'");
+                return basePath;
+            }
+
+            var decodedPath = Uri.UnescapeDataString(relativePath);
+            Console.WriteLine($"After URL decoding: '{decodedPath}'");
+
+            var fullPath = Path.Combine(basePath, decodedPath);
+            Console.WriteLine($"Combined path: '{fullPath}'");
+
+            // 规范化路径
+            fullPath = Path.GetFullPath(fullPath);
+            Console.WriteLine($"After GetFullPath: '{fullPath}'");
+
+            // 安全检查：确保路径在basePath内
+            if (!fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"SECURITY VIOLATION: {fullPath} does not start with {basePath}");
+                throw new UnauthorizedAccessException("Access denied: Path is outside the authorized directory.");
+            }
+
+            Console.WriteLine($"Returning normalized path: '{fullPath}'");
+            return fullPath;
         }
 
         // 添加这个方法到HomeController中 - 用于AJAX获取文件列表
@@ -680,6 +809,7 @@ namespace SpaceHSG.Controllers
         }
 
         // ============== 新增：获取文件列表HTML片段 ==============
+        // ============== 新增：获取文件列表HTML片段 ==============
         [HttpGet]
         public IActionResult GetFilesHtml(string path = "")
         {
@@ -712,7 +842,8 @@ namespace SpaceHSG.Controllers
                         Size = 0L,
                         Modified = Directory.GetLastWriteTime(dirPath),
                         Extension = "",
-                        Path = GetRelativePath(dirPath, basePath)
+                        Path = GetRelativePath(dirPath, basePath),
+                        FullName = new DirectoryInfo(dirPath).FullName
                     });
 
                 // Get file list
@@ -724,7 +855,8 @@ namespace SpaceHSG.Controllers
                         Size = new FileInfo(filePath).Length,
                         Modified = System.IO.File.GetLastWriteTime(filePath),
                         Extension = Path.GetExtension(filePath),
-                        Path = GetRelativePath(filePath, basePath)
+                        Path = GetRelativePath(filePath, basePath),
+                        FullName = filePath
                     });
 
                 // Merge and sort
@@ -733,13 +865,18 @@ namespace SpaceHSG.Controllers
                     .ThenBy(x => x.Name)
                     .ToList();
 
-                // 生成HTML内容
-                string html = GenerateFilesHtml(items, path);
+                // 传递到部分视图 - 使用现有的逻辑
+                ViewBag.Items = items;
+                ViewBag.CurrentPath = path;
+                ViewBag.RelativePath = path;
+                ViewBag.IsRoot = string.IsNullOrEmpty(path) || path == RootPath;
 
-                return Content(html, "text/html");
+                // 渲染部分视图而不是手动生成HTML
+                return PartialView("_FilesHtmlPartial", items);
             }
             catch (Exception ex)
             {
+                // 返回错误信息
                 return Content($"<div class='fm-error'>Error: {ex.Message}</div>", "text/html");
             }
         }
