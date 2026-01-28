@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace SpaceHSG.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string basePath = @"C:\sharedrive"; // Change to server
+        private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change to server
         private const string RootPath = ""; // Root path identifier
 
         public IActionResult Index(string path = "")
@@ -18,10 +18,8 @@ namespace SpaceHSG.Controllers
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("Username")))
             {
                 return RedirectToAction("Login", "Account");
-            } // ====== LOGIN CHECK END ======
-
-            Console.WriteLine($"=== INDEX DEBUG ===");
-            Console.WriteLine($"Index called with path parameter: '{path}'");
+            } 
+            // ====== LOGIN CHECK END ======
 
             try
             {
@@ -339,16 +337,22 @@ namespace SpaceHSG.Controllers
         {
             try
             {
-                Console.WriteLine($"=== CREATE FOLDER DEBUG ===");
-                Console.WriteLine($"Received path parameter: '{path}'");
-                Console.WriteLine($"Received folderName parameter: '{folderName}'");
-
-                // 记录原始参数的十六进制值，以便查看特殊字符
-                Console.WriteLine($"path bytes: {BitConverter.ToString(Encoding.UTF8.GetBytes(path ?? ""))}");
-                Console.WriteLine($"folderName bytes: {BitConverter.ToString(Encoding.UTF8.GetBytes(folderName ?? ""))}");
+                Console.WriteLine($"");
+                Console.WriteLine($"===========================================");
+                Console.WriteLine($"=== CREATE FOLDER REQUEST (SERVER) ===");
+                Console.WriteLine($"===========================================");
+                Console.WriteLine($"Raw parameters:");
+                Console.WriteLine($"  path: '{path}'");
+                Console.WriteLine($"  path is null: {path == null}");
+                Console.WriteLine($"  path is empty: {string.IsNullOrEmpty(path)}");
+                Console.WriteLine($"  path length: {path?.Length ?? 0}");
+                Console.WriteLine($"  folderName: '{folderName}'");
+                Console.WriteLine($"-------------------------------------------");
 
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
+                    Console.WriteLine($"ERROR: Folder name is empty or whitespace");
+                    Console.WriteLine($"===========================================");
                     return BadRequest(new { success = false, message = "Folder name cannot be empty." });
                 }
 
@@ -358,12 +362,16 @@ namespace SpaceHSG.Controllers
 
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
+                    Console.WriteLine($"ERROR: Cleaned folder name is empty");
+                    Console.WriteLine($"===========================================");
                     return BadRequest(new { success = false, message = "Folder name contains only invalid characters." });
                 }
 
                 // Validate folder name
                 if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 {
+                    Console.WriteLine($"ERROR: Folder name contains invalid characters");
+                    Console.WriteLine($"===========================================");
                     return BadRequest(new { success = false, message = "Folder name contains invalid characters." });
                 }
 
@@ -373,28 +381,43 @@ namespace SpaceHSG.Controllers
                     path = CleanPath(path);
                     Console.WriteLine($"Cleaned path: '{path}'");
                 }
+                else
+                {
+                    Console.WriteLine($"Path is null or empty, will use basePath");
+                }
 
                 // 使用验证方法获取目标目录
+                Console.WriteLine($"-------------------------------------------");
+                Console.WriteLine($"Calling ValidateAndNormalizePath with: '{path}'");
                 string targetDirectory = ValidateAndNormalizePath(path);
-                Console.WriteLine($"Target directory after validation: '{targetDirectory}'");
+                Console.WriteLine($"Target directory returned: '{targetDirectory}'");
+                Console.WriteLine($"basePath for comparison: '{basePath}'");
+                Console.WriteLine($"Are they equal?: {targetDirectory == basePath}");
+                Console.WriteLine($"-------------------------------------------");
 
                 var newFolderPath = Path.Combine(targetDirectory, folderName);
-                Console.WriteLine($"New folder path: '{newFolderPath}'");
+                Console.WriteLine($"New folder will be created at: '{newFolderPath}'");
 
                 // Check if folder already exists
                 if (Directory.Exists(newFolderPath))
                 {
-                    Console.WriteLine($"Folder already exists at: '{newFolderPath}'");
+                    Console.WriteLine($"-------------------------------------------");
+                    Console.WriteLine($"ERROR: Folder already exists");
+                    Console.WriteLine($"  Existing folder: '{newFolderPath}'");
+                    Console.WriteLine($"===========================================");
                     return BadRequest(new { success = false, message = "Folder already exists." });
                 }
 
                 // Create the folder
+                Console.WriteLine($"-------------------------------------------");
+                Console.WriteLine($"Creating directory...");
                 Directory.CreateDirectory(newFolderPath);
-                Console.WriteLine($"Folder created successfully at: '{newFolderPath}'");
+                Console.WriteLine($"SUCCESS: Folder created at: '{newFolderPath}'");
 
                 var relativePath = GetRelativePath(newFolderPath, basePath);
                 Console.WriteLine($"Relative path for new folder: '{relativePath}'");
-                Console.WriteLine($"=== END DEBUG ===");
+                Console.WriteLine($"===========================================");
+                Console.WriteLine($"");
 
                 return Ok(new
                 {

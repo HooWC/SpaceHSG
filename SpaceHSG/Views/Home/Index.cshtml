@@ -341,11 +341,18 @@
 <script>
     // 页面加载后初始化
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Initializing File Manager...');
+        console.log('===========================================');
+        console.log('PAGE LOAD - Index.cshtml');
+        console.log('ViewBag.RelativePath:', '@ViewBag.RelativePath');
+        console.log('ViewBag.RelativePath length:', '@ViewBag.RelativePath'.length);
+        console.log('===========================================');
 
         // 设置全局变量
+        const relativePath = '@(ViewBag.RelativePath ?? "")';
+        console.log('Calling initializeFileManager with path:', relativePath);
+        
         if (typeof initializeFileManager === 'function') {
-            initializeFileManager('@ViewBag.RelativePath', '@Url.Action("Upload", "Home")');
+            initializeFileManager(relativePath, '@Url.Action("Upload", "Home")');
         } else {
             console.error('initializeFileManager function not found!');
         }
