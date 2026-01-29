@@ -6,6 +6,16 @@ let uploadUrl = '';
 let selectedItems = new Set(); // 存储选中的项目
 let isRefreshing = false; // 防止重复刷新
 
+// 辅助函数：构建正确的应用URL
+function buildAppUrl(path) {
+    const basePath = window.appBasePath || '/';
+    // 移除开头的斜杠（如果有）
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // 确保basePath以斜杠结尾
+    const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
+    return normalizedBase + cleanPath;
+}
+
 // 调试函数 - 在浏览器控制台输入 debugPath() 来检查当前路径
 window.debugPath = function() {
     console.log('===========================================');
@@ -74,6 +84,87 @@ function initDomElements() {
 
 let dragCounter = 0;
 let deleteItemPath = '';
+
+// ============== 权限检查函数 ==============
+
+/**
+ * 检查用户是否对当前路径有写权限
+ * @returns {boolean} true表示有权限，false表示无权限
+ */
+function hasWritePermission() {
+    const userDepartment = window.userDepartment || '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPath = urlParams.get('path') || '';
+    
+    console.log('=== Permission Check ===');
+    console.log('User Department:', userDepartment);
+    console.log('Current Path:', currentPath);
+    
+    // 如果在根目录，不允许任何写操作
+    if (!currentPath || currentPath === '') {
+        console.log('Result: NO (root directory)');
+        return false;
+    }
+    
+    // 提取路径中的第一级文件夹（部门文件夹）
+    const pathParts = currentPath.split(/[\\\/]/).filter(p => p);
+    if (pathParts.length === 0) {
+        console.log('Result: NO (empty path)');
+        return false;
+    }
+    
+    const targetDepartment = pathParts[0];
+    console.log('Target Department:', targetDepartment);
+    
+    // 只有用户部门与目标部门匹配时才允许写操作
+    const hasPermission = userDepartment.toLowerCase() === targetDepartment.toLowerCase();
+    console.log('Result:', hasPermission ? 'YES' : 'NO');
+    
+    return hasPermission;
+}
+
+/**
+ * 根据权限显示/隐藏按钮
+ */
+function checkAndUpdateButtonsVisibility() {
+    const hasPermission = hasWritePermission();
+    
+    console.log('=== Updating Button Visibility ===');
+    console.log('Has Write Permission:', hasPermission);
+    
+    // 获取所有需要权限的元素
+    const uploadBtn = document.getElementById('uploadBtn');
+    const newFolderBtn = document.getElementById('newFolderBtn');
+    const deleteButtons = document.querySelectorAll('.fm-delete-btn, .delete-btn');
+    const batchActionsArea = document.getElementById('batchActions');
+    const selectAllContainer = document.querySelector('.fm-select-all-container');
+    
+    // 获取所有list view中的checkbox
+    const allCheckboxContainers = document.querySelectorAll('.fm-list-checkbox-container.fm-write-permission-only');
+    
+    if (hasPermission) {
+        // 有权限：显示所有按钮和checkbox
+        if (uploadBtn) uploadBtn.style.display = '';
+        if (newFolderBtn) newFolderBtn.style.display = '';
+        if (selectAllContainer) selectAllContainer.style.display = '';
+        deleteButtons.forEach(btn => btn.style.display = '');
+        allCheckboxContainers.forEach(container => container.style.display = '');
+        console.log('Buttons enabled (user has write permission)');
+    } else {
+        // 无权限：隐藏所有写操作按钮和checkbox
+        if (uploadBtn) uploadBtn.style.display = 'none';
+        if (newFolderBtn) newFolderBtn.style.display = 'none';
+        if (selectAllContainer) selectAllContainer.style.display = 'none';
+        if (batchActionsArea) batchActionsArea.style.display = 'none';
+        deleteButtons.forEach(btn => btn.style.display = 'none');
+        allCheckboxContainers.forEach(container => container.style.display = 'none');
+        console.log('Buttons disabled (user has no write permission)');
+    }
+}
+
+// 将函数导出到全局
+window.hasWritePermission = hasWritePermission;
+window.checkAndUpdateButtonsVisibility = checkAndUpdateButtonsVisibility;
 
 // ============== 主题切换 ==============
 window.toggleThemeNow = function () {
@@ -379,14 +470,25 @@ function createFolder() {
     params.append('path', pathToUse);
     params.append('folderName', folderName);
 
-    const fullUrl = '/Home/CreateFolder?' + params.toString();
+    const fullUrl = buildAppUrl('Home/CreateFolder') + '?' + params.toString();
     console.log('Request URL:', fullUrl);
     console.log('===========================================');
 
     fetch(fullUrl, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
     })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('===========================================');
             console.log('Server Response:', data);
@@ -397,12 +499,13 @@ function createFolder() {
                 // 立即刷新页面以显示新文件夹
                 window.location.reload();
             } else {
-                showToast('Error', data.message, 'error');
+                showToast('Error', data.message || 'Failed to create folder', 'error');
             }
         })
         .catch(error => {
             console.error('Create folder error:', error);
-            showToast('Error', 'Network error occurred', 'error');
+            console.error('Error details:', error.message, error.stack);
+            showToast('Error', `Network error: ${error.message}`, 'error');
         });
 }
 
@@ -413,23 +516,34 @@ function confirmDelete() {
     const formData = new FormData();
     formData.append('path', deleteItemPath);
 
-    fetch('/Home/Delete', {
+    fetch(buildAppUrl('Home/Delete'), {
         method: 'POST',
         body: formData
     })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            console.log('Delete response ok:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Delete response data:', data);
+            
             if (data.success) {
                 hideDeleteModal();
                 // 立即刷新页面以反映删除操作
                 window.location.reload();
             } else {
-                showToast('Error', data.message, 'error');
+                showToast('Error', data.message || 'Failed to delete', 'error');
             }
         })
         .catch(error => {
             console.error('Delete error:', error);
-            showToast('Error', 'Network error occurred', 'error');
+            console.error('Error details:', error.message, error.stack);
+            showToast('Error', `Network error: ${error.message}`, 'error');
         });
 }
 
@@ -672,7 +786,7 @@ function batchDelete() {
         const formData = new FormData();
         formData.append('path', itemPath);
 
-        return fetch('/Home/Delete', {
+        return fetch(buildAppUrl('Home/Delete'), {
             method: 'POST',
             body: formData
         })
@@ -782,7 +896,7 @@ function reattachEventListeners() {
             e.stopPropagation();
             const listItem = this.closest('.fm-list-item');
             const itemPath = listItem.dataset.path;
-            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Index') + '?path=' + encodeURIComponent(itemPath);
         };
     });
 
@@ -792,7 +906,7 @@ function reattachEventListeners() {
             e.stopPropagation();
             const listItem = this.closest('.fm-list-item');
             const itemPath = listItem.dataset.path;
-            window.location.href = '/Home/Download?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Download') + '?path=' + encodeURIComponent(itemPath);
         };
     });
 
@@ -941,9 +1055,9 @@ function navigateToItemByElement(element) {
         const itemPath = listItem.dataset.path;
 
         if (itemType === 'Folder') {
-            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Index') + '?path=' + encodeURIComponent(itemPath);
         } else {
-            window.location.href = '/Home/Download?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Download') + '?path=' + encodeURIComponent(itemPath);
         }
     }
 }

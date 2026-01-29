@@ -5,6 +5,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginConfig = window.loginConfig || {};
     const loginUrl = loginConfig.loginUrl || '/Account/Login';
     const homeUrl = loginConfig.homeUrl || '/Home/Index';
+    const checkSessionUrl = loginConfig.checkSessionUrl || '/Account/CheckSession';
+
+    // ========== 检查localStorage，如果已登录则自动跳转 ==========
+    const checkAutoLogin = async () => {
+        const userInfo = localStorage.getItem('spaceHSG_user');
+        
+        if (userInfo) {
+            try {
+                const user = JSON.parse(userInfo);
+                console.log('Found user info in localStorage:', user);
+                
+                // 验证服务器session是否还有效
+                const response = await fetch(checkSessionUrl);
+                const result = await response.json();
+                
+                if (result.isLoggedIn) {
+                    console.log('Session is valid, redirecting to home...');
+                    window.location.href = homeUrl;
+                } else {
+                    console.log('Session expired, clearing localStorage');
+                    localStorage.removeItem('spaceHSG_user');
+                }
+            } catch (error) {
+                console.error('Auto-login check failed:', error);
+                localStorage.removeItem('spaceHSG_user');
+            }
+        }
+    };
+    
+    checkAutoLogin();
 
     // 点击登录按钮
     if (loginBtn) {
@@ -32,8 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const result = await response.json();
 
                     if (result.success) {
+                        // ========== 保存用户信息到 localStorage ==========
+                        const userInfo = {
+                            username: result.username || user,
+                            displayName: result.displayName || user,
+                            department: result.department || 'Unknown',
+                            role: result.role || 'User',
+                            loginTime: new Date().toISOString()
+                        };
+                        
+                        localStorage.setItem('spaceHSG_user', JSON.stringify(userInfo));
+                        console.log('User info saved to localStorage:', userInfo);
+                        
                         if (typeof showToast === 'function') {
-                            showToast('Success', 'Login successful! Redirecting...', 'success');
+                            showToast('Success', `Welcome, ${userInfo.displayName}! (${userInfo.department})`, 'success');
                             setTimeout(() => {
                                 window.location.href = homeUrl;
                             }, 1000);
@@ -43,6 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         if (typeof showToast === 'function') {
                             showToast('Login Failed', result.message || 'Invalid credentials', 'error');
+                        } else {
+                            alert(result.message || 'Invalid credentials');
                         }
                     }
                 } else {

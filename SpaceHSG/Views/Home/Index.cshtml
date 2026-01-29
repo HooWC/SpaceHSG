@@ -27,11 +27,11 @@
             </h1>
         </a>
         <div class="fm-toolbar">
-            <button class="fm-btn fm-btn-primary" onclick="document.getElementById('fileInput').click()">
+            <button id="uploadBtn" class="fm-btn fm-btn-primary" onclick="document.getElementById('fileInput').click()">
                 <span class="fm-btn-icon">⬆️</span>
                 Upload
             </button>
-            <button class="fm-btn" onclick="showCreateFolderModal()">
+            <button id="newFolderBtn" class="fm-btn" onclick="showCreateFolderModal()">
                 <span class="fm-btn-icon">➕</span>
                 New Folder
             </button>
@@ -212,7 +212,7 @@
             <div class="fm-list-view" id="listView" style="display: none;">
                 <div class="fm-list-header">
                     <!-- 全选复选框 -->
-                    <div class="fm-list-checkbox-container" onclick="toggleSelectAll()">
+                    <div class="fm-list-checkbox-container fm-write-permission-only" onclick="toggleSelectAll()">
                         <div class="fm-list-checkbox" id="selectAllCheckbox"></div>
                     </div>
                     <div></div>
@@ -225,7 +225,7 @@
                 @foreach (var item in ViewBag.Items)
                 {
                     <div class="fm-list-item" data-path="@item.Path" data-name="@item.Name" data-type="@item.Type">
-                        <div class="fm-list-checkbox-container" onclick="event.stopPropagation();">
+                        <div class="fm-list-checkbox-container fm-write-permission-only" onclick="event.stopPropagation();">
                             <div class="fm-list-checkbox"></div>
                         </div>
                         <div class="fm-list-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))"
@@ -334,9 +334,6 @@
     }
 }
 
-<!-- 引用外部JavaScript文件 -->
-<script src="~/js/site.js" asp-append-version="true"></script>
-
 <!-- 初始化脚本 -->
 <script>
     // 页面加载后初始化
@@ -344,8 +341,17 @@
         console.log('===========================================');
         console.log('PAGE LOAD - Index.cshtml');
         console.log('ViewBag.RelativePath:', '@ViewBag.RelativePath');
-        console.log('ViewBag.RelativePath length:', '@ViewBag.RelativePath'.length);
+        console.log('ViewBag.UserDepartment:', '@ViewBag.UserDepartment');
         console.log('===========================================');
+
+        // ========== 设置全局用户信息 ==========
+        window.userDepartment = '@(ViewBag.UserDepartment ?? "Unknown")';
+        window.userDisplayName = '@(ViewBag.UserDisplayName ?? "")';
+        window.userRole = '@(ViewBag.UserRole ?? "User")';
+        
+        console.log('User Department:', window.userDepartment);
+        console.log('User Display Name:', window.userDisplayName);
+        console.log('User Role:', window.userRole);
 
         // 设置全局变量
         const relativePath = '@(ViewBag.RelativePath ?? "")';
@@ -357,11 +363,17 @@
             console.error('initializeFileManager function not found!');
         }
 
-        // 设置登出按钮事件
+        // ========== 根据权限显示/隐藏按钮 ==========
+        checkAndUpdateButtonsVisibility();
+
+        // 设置登出按钮事件 - 清除localStorage
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 if (confirm("Are you sure you want to logout?")) {
+                    // 清除localStorage
+                    localStorage.removeItem('spaceHSG_user');
+                    console.log('localStorage cleared on logout');
                     window.location.href = '@Url.Action("Logout", "Account")';
                 }
             });
