@@ -2,9 +2,6 @@
     ViewData["Title"] = "Files";
 }
 
-<!-- OneDrive Style CSS -->
-<link rel="stylesheet" href="~/css/onedrive-style.css" />
-
 <!-- Toast Container -->
 <div class="fm-toast-container" id="toastContainer"></div>
 
@@ -338,29 +335,29 @@
 <script>
     // 页面加载后初始化
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('===========================================');
+        @* console.log('===========================================');
         console.log('PAGE LOAD - Index.cshtml');
         console.log('ViewBag.RelativePath:', '@ViewBag.RelativePath');
         console.log('ViewBag.UserDepartment:', '@ViewBag.UserDepartment');
-        console.log('===========================================');
+        console.log('==========================================='); *@
 
         // ========== 设置全局用户信息 ==========
         window.userDepartment = '@(ViewBag.UserDepartment ?? "Unknown")';
         window.userDisplayName = '@(ViewBag.UserDisplayName ?? "")';
         window.userRole = '@(ViewBag.UserRole ?? "User")';
         
-        console.log('User Department:', window.userDepartment);
+        @* console.log('User Department:', window.userDepartment);
         console.log('User Display Name:', window.userDisplayName);
-        console.log('User Role:', window.userRole);
+        console.log('User Role:', window.userRole); *@
 
         // 设置全局变量
         const relativePath = '@(ViewBag.RelativePath ?? "")';
-        console.log('Calling initializeFileManager with path:', relativePath);
+        @* console.log('Calling initializeFileManager with path:', relativePath); *@
         
         if (typeof initializeFileManager === 'function') {
             initializeFileManager(relativePath, '@Url.Action("Upload", "Home")');
         } else {
-            console.error('initializeFileManager function not found!');
+            showToast('Error', 'InitializeFileManager function not found!', 'error');
         }
 
         // ========== 根据权限显示/隐藏按钮 ==========
@@ -371,9 +368,9 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 if (confirm("Are you sure you want to logout?")) {
-                    // 清除localStorage
+                    // Clear localStorage
                     localStorage.removeItem('spaceHSG_user');
-                    console.log('localStorage cleared on logout');
+                    @* console.log('localStorage cleared on logout'); *@
                     window.location.href = '@Url.Action("Logout", "Account")';
                 }
             });
@@ -383,13 +380,13 @@
         @if (ViewBag.Error != null)
         {
                     <text>
-                    setTimeout(() => {
-                        showToast('Error', '@Html.Raw(ViewBag.Error)', 'error');
-                    }, 1000);
+                        setTimeout(() => {
+                            showToast('Error', '@Html.Raw(ViewBag.Error)', 'error');
+                        }, 1000);
                     </text>
         }
 
-        console.log('File Manager initialized successfully');
+        @* console.log('File Manager initialized successfully'); *@
     });
 
     // 全局辅助函数
@@ -440,6 +437,6 @@
             input.focus();
         }
 
-        console.log('Creating folder in path:', currentPath || 'root');
+        @* console.log('Creating folder in path:', currentPath || 'root'); *@
     };
 </script>

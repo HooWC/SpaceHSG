@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeUrl = loginConfig.homeUrl || '/Home/Index';
     const checkSessionUrl = loginConfig.checkSessionUrl || '/Account/CheckSession';
 
-    // ========== 检查localStorage，如果已登录则自动跳转 ==========
+    // ========== checking login localStorage ==========
     const checkAutoLogin = async () => {
         const userInfo = localStorage.getItem('spaceHSG_user');
         
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const user = JSON.parse(userInfo);
                 console.log('Found user info in localStorage:', user);
                 
-                // 验证服务器session是否还有效
+                // checking session
                 const response = await fetch(checkSessionUrl);
                 const result = await response.json();
                 
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     checkAutoLogin();
 
-    // 点击登录按钮
+    // login btn click event
     if (loginBtn) {
         loginBtn.addEventListener('click', async () => {
             const user = document.getElementById('username').value;
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const result = await response.json();
 
                     if (result.success) {
-                        // ========== 保存用户信息到 localStorage ==========
+                        // ========== Save user information to localStorage ==========
                         const userInfo = {
                             username: result.username || user,
                             displayName: result.displayName || user,

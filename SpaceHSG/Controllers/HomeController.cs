@@ -10,18 +10,17 @@ namespace SpaceHSG.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change to server
+        private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change File Path to server
         private const string RootPath = ""; // Root path identifier
         
-        // 部门列表（与文件夹名称匹配）
+        // Department List
         private readonly string[] validDepartments = { "Admin", "Audit", "Finance", "IT", "Logistics", "Management", "Production", "Report User", "Sales" };
 
         public IActionResult Index(string path = "")
         {
+            // ======  LOGIN CHECK  ======
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("Username")))
-            {
                 return RedirectToAction("Login", "Account");
-            } 
             // ====== LOGIN CHECK END ======
 
             try
@@ -95,9 +94,9 @@ namespace SpaceHSG.Controllers
                 ViewBag.UserDisplayName = HttpContext.Session.GetString("DisplayName") ?? "";
                 ViewBag.UserRole = HttpContext.Session.GetString("Role") ?? "User";
 
-                Console.WriteLine($"ViewBag.RelativePath set to: '{path}'");
-                Console.WriteLine($"ViewBag.UserDepartment set to: '{ViewBag.UserDepartment}'");
-                Console.WriteLine($"=== END INDEX DEBUG ===");
+                //Console.WriteLine($"ViewBag.RelativePath set to: '{path}'");
+                //Console.WriteLine($"ViewBag.UserDepartment set to: '{ViewBag.UserDepartment}'");
+                //Console.WriteLine($"=== END INDEX DEBUG ===");
 
                 return View();
             }
@@ -139,13 +138,13 @@ namespace SpaceHSG.Controllers
             }
         }
 
-        // Upload files and folders - 修改为支持带结构的文件上传
+        // Upload files and folders
         [HttpPost]
         public async Task<IActionResult> Upload(string path = "")
         {
             try
             {
-                // ========== 权限检查 ==========
+                // ========== Access Checking File Function ==========
                 if (!HasWritePermission(path))
                 {
                     var userDept = HttpContext.Session.GetString("Department");
@@ -189,12 +188,10 @@ namespace SpaceHSG.Controllers
                 var failedFiles = new List<string>();
                 var createdFolders = new HashSet<string>();
 
-                // 检查是否是带结构的文件上传
                 var preserveStructure = Request.Form["preserveStructure"] == "true";
 
                 if (preserveStructure)
                 {
-                    // 处理带结构的文件上传
                     for (int i = 0; ; i++)
                     {
                         var fileKey = $"files[{i}].file";
@@ -240,7 +237,7 @@ namespace SpaceHSG.Controllers
                                     counter++;
                                 }
 
-                                // 保存文件
+                                // Save File
                                 using (var stream = new FileStream(finalPath, FileMode.Create))
                                 {
                                     await file.CopyToAsync(stream);
@@ -350,30 +347,17 @@ namespace SpaceHSG.Controllers
         }
 
         // Create new folder
-        // Create new folder - 使用验证方法
         [HttpPost]
         public IActionResult CreateFolder(string path = "", string folderName = "")
         {
             try
             {
-                Console.WriteLine($"");
-                Console.WriteLine($"===========================================");
-                Console.WriteLine($"=== CREATE FOLDER REQUEST (SERVER) ===");
-                Console.WriteLine($"===========================================");
-                Console.WriteLine($"Raw parameters:");
-                Console.WriteLine($"  path: '{path}'");
-                Console.WriteLine($"  path is null: {path == null}");
-                Console.WriteLine($"  path is empty: {string.IsNullOrEmpty(path)}");
-                Console.WriteLine($"  path length: {path?.Length ?? 0}");
-                Console.WriteLine($"  folderName: '{folderName}'");
-                Console.WriteLine($"-------------------------------------------");
-
                 // ========== 权限检查 ==========
                 if (!HasWritePermission(path))
                 {
                     var userDept = HttpContext.Session.GetString("Department");
-                    Console.WriteLine($"ERROR: Permission denied for user department: {userDept}");
-                    Console.WriteLine($"===========================================");
+                    //Console.WriteLine($"ERROR: Permission denied for user department: {userDept}");
+                    //Console.WriteLine($"===========================================");
                     return Json(new { 
                         success = false, 
                         message = $"Access denied. You can only create folders in your department folder ({userDept})." 
@@ -382,27 +366,27 @@ namespace SpaceHSG.Controllers
 
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
-                    Console.WriteLine($"ERROR: Folder name is empty or whitespace");
-                    Console.WriteLine($"===========================================");
+                    //Console.WriteLine($"ERROR: Folder name is empty or whitespace");
+                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder name cannot be empty." });
                 }
 
                 // 清理文件夹名：移除控制字符和无效字符
                 folderName = CleanFileName(folderName);
-                Console.WriteLine($"Cleaned folderName: '{folderName}'");
+                //Console.WriteLine($"Cleaned folderName: '{folderName}'");
 
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
-                    Console.WriteLine($"ERROR: Cleaned folder name is empty");
-                    Console.WriteLine($"===========================================");
+                    //Console.WriteLine($"ERROR: Cleaned folder name is empty");
+                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder name contains only invalid characters." });
                 }
 
                 // Validate folder name
                 if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 {
-                    Console.WriteLine($"ERROR: Folder name contains invalid characters");
-                    Console.WriteLine($"===========================================");
+                    //Console.WriteLine($"ERROR: Folder name contains invalid characters");
+                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder name contains invalid characters." });
                 }
 
@@ -410,45 +394,46 @@ namespace SpaceHSG.Controllers
                 if (!string.IsNullOrEmpty(path))
                 {
                     path = CleanPath(path);
-                    Console.WriteLine($"Cleaned path: '{path}'");
+                    //Console.WriteLine($"Cleaned path: '{path}'");
                 }
                 else
                 {
-                    Console.WriteLine($"Path is null or empty, will use basePath");
+                    //Console.WriteLine($"Path is null or empty, will use basePath");
                 }
 
-                // 使用验证方法获取目标目录
-                Console.WriteLine($"-------------------------------------------");
-                Console.WriteLine($"Calling ValidateAndNormalizePath with: '{path}'");
                 string targetDirectory = ValidateAndNormalizePath(path);
-                Console.WriteLine($"Target directory returned: '{targetDirectory}'");
-                Console.WriteLine($"basePath for comparison: '{basePath}'");
-                Console.WriteLine($"Are they equal?: {targetDirectory == basePath}");
-                Console.WriteLine($"-------------------------------------------");
+
+                // 使用验证方法获取目标目录
+                //Console.WriteLine($"-------------------------------------------");
+                //Console.WriteLine($"Calling ValidateAndNormalizePath with: '{path}'");
+                //Console.WriteLine($"Target directory returned: '{targetDirectory}'");
+                //Console.WriteLine($"basePath for comparison: '{basePath}'");
+                //Console.WriteLine($"Are they equal?: {targetDirectory == basePath}");
+                //Console.WriteLine($"-------------------------------------------");
 
                 var newFolderPath = Path.Combine(targetDirectory, folderName);
-                Console.WriteLine($"New folder will be created at: '{newFolderPath}'");
+                //Console.WriteLine($"New folder will be created at: '{newFolderPath}'");
 
                 // Check if folder already exists
                 if (Directory.Exists(newFolderPath))
                 {
-                    Console.WriteLine($"-------------------------------------------");
-                    Console.WriteLine($"ERROR: Folder already exists");
-                    Console.WriteLine($"  Existing folder: '{newFolderPath}'");
-                    Console.WriteLine($"===========================================");
+                    //Console.WriteLine($"-------------------------------------------");
+                    //Console.WriteLine($"ERROR: Folder already exists");
+                    //Console.WriteLine($"  Existing folder: '{newFolderPath}'");
+                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder already exists." });
                 }
 
                 // Create the folder
-                Console.WriteLine($"-------------------------------------------");
-                Console.WriteLine($"Creating directory...");
+                //Console.WriteLine($"-------------------------------------------");
+                //Console.WriteLine($"Creating directory...");
                 Directory.CreateDirectory(newFolderPath);
-                Console.WriteLine($"SUCCESS: Folder created at: '{newFolderPath}'");
+                //Console.WriteLine($"SUCCESS: Folder created at: '{newFolderPath}'");
 
                 var relativePath = GetRelativePath(newFolderPath, basePath);
-                Console.WriteLine($"Relative path for new folder: '{relativePath}'");
-                Console.WriteLine($"===========================================");
-                Console.WriteLine($"");
+                //Console.WriteLine($"Relative path for new folder: '{relativePath}'");
+                //Console.WriteLine($"===========================================");
+                //Console.WriteLine($"");
 
                 return Ok(new
                 {
@@ -459,13 +444,13 @@ namespace SpaceHSG.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                Console.WriteLine($"UnauthorizedAccessException: {ex.Message}");
+                //Console.WriteLine($"UnauthorizedAccessException: {ex.Message}");
                 return Forbid();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in CreateFolder: {ex}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                //Console.WriteLine($"Exception in CreateFolder: {ex}");
+                //Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return Json(new { success = false, message = $"Create folder error: {ex.Message}" });
             }
         }
@@ -485,7 +470,7 @@ namespace SpaceHSG.Controllers
                 }
                 else
                 {
-                    Console.WriteLine($"Removed control character: {(int)c} from filename");
+                    //Console.WriteLine($"Removed control character: {(int)c} from filename");
                 }
             }
 
@@ -511,7 +496,7 @@ namespace SpaceHSG.Controllers
                 }
                 else
                 {
-                    Console.WriteLine($"Removed control character: {(int)c} from path");
+                    //Console.WriteLine($"Removed control character: {(int)c} from path");
                 }
             }
 
@@ -630,24 +615,23 @@ namespace SpaceHSG.Controllers
         }
 
         // Helper method: Get relative path
-        // Helper method: Get relative path
         private string GetRelativePath(string fullPath, string basePath)
         {
-            Console.WriteLine($"GetRelativePath called with:");
-            Console.WriteLine($"  fullPath: '{fullPath}'");
-            Console.WriteLine($"  basePath: '{basePath}'");
+            //Console.WriteLine($"GetRelativePath called with:");
+            //Console.WriteLine($"  fullPath: '{fullPath}'");
+            //Console.WriteLine($"  basePath: '{basePath}'");
 
             if (fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
             {
                 var relative = fullPath.Substring(basePath.Length).TrimStart(System.IO.Path.DirectorySeparatorChar);
                 var result = string.IsNullOrEmpty(relative) ? RootPath : relative;
 
-                Console.WriteLine($"  Result: '{result}'");
+                //Console.WriteLine($"  Result: '{result}'");
                 return result;
             }
 
-            Console.WriteLine($"  ERROR: fullPath does not start with basePath");
-            Console.WriteLine($"  Returning fullPath: '{fullPath}'");
+            //Console.WriteLine($"  ERROR: fullPath does not start with basePath");
+            //Console.WriteLine($"  Returning fullPath: '{fullPath}'");
             return fullPath;
         }
 
@@ -700,32 +684,32 @@ namespace SpaceHSG.Controllers
         // 辅助方法：验证和规范化路径
         private string ValidateAndNormalizePath(string relativePath)
         {
-            Console.WriteLine($"ValidateAndNormalizePath called with: '{relativePath}'");
+            //Console.WriteLine($"ValidateAndNormalizePath called with: '{relativePath}'");
 
             if (string.IsNullOrEmpty(relativePath) || relativePath == RootPath)
             {
-                Console.WriteLine($"Returning basePath: '{basePath}'");
+                //Console.WriteLine($"Returning basePath: '{basePath}'");
                 return basePath;
             }
 
             var decodedPath = Uri.UnescapeDataString(relativePath);
-            Console.WriteLine($"After URL decoding: '{decodedPath}'");
+            //Console.WriteLine($"After URL decoding: '{decodedPath}'");
 
             var fullPath = Path.Combine(basePath, decodedPath);
-            Console.WriteLine($"Combined path: '{fullPath}'");
+            //Console.WriteLine($"Combined path: '{fullPath}'");
 
             // 规范化路径
             fullPath = Path.GetFullPath(fullPath);
-            Console.WriteLine($"After GetFullPath: '{fullPath}'");
+            //Console.WriteLine($"After GetFullPath: '{fullPath}'");
 
             // 安全检查：确保路径在basePath内
             if (!fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine($"SECURITY VIOLATION: {fullPath} does not start with {basePath}");
+                //Console.WriteLine($"SECURITY VIOLATION: {fullPath} does not start with {basePath}");
                 throw new UnauthorizedAccessException("Access denied: Path is outside the authorized directory.");
             }
 
-            Console.WriteLine($"Returning normalized path: '{fullPath}'");
+            //Console.WriteLine($"Returning normalized path: '{fullPath}'");
             return fullPath;
         }
 
@@ -872,7 +856,6 @@ namespace SpaceHSG.Controllers
             }
         }
 
-        // ============== 新增：获取文件列表HTML片段 ==============
         // ============== 新增：获取文件列表HTML片段 ==============
         [HttpGet]
         public IActionResult GetFilesHtml(string path = "")
@@ -1097,22 +1080,22 @@ namespace SpaceHSG.Controllers
             // 获取用户部门
             var userDepartment = HttpContext.Session.GetString("Department");
             
-            Console.WriteLine($"========== Permission Check ==========");
-            Console.WriteLine($"User Department: {userDepartment}");
-            Console.WriteLine($"Relative Path: {relativePath}");
+            //Console.WriteLine($"========== Permission Check ==========");
+            //Console.WriteLine($"User Department: {userDepartment}");
+            //Console.WriteLine($"Relative Path: {relativePath}");
             
             if (string.IsNullOrEmpty(userDepartment))
             {
-                Console.WriteLine("ERROR: User department is null or empty");
-                Console.WriteLine($"=====================================");
+                //Console.WriteLine("ERROR: User department is null or empty");
+                //Console.WriteLine($"=====================================");
                 return false;
             }
 
             // 如果在根目录，不允许任何写操作
             if (string.IsNullOrEmpty(relativePath) || relativePath == RootPath)
             {
-                Console.WriteLine("Result: DENIED (root directory)");
-                Console.WriteLine($"=====================================");
+                //Console.WriteLine("Result: DENIED (root directory)");
+                //Console.WriteLine($"=====================================");
                 return false;
             }
 
@@ -1120,27 +1103,27 @@ namespace SpaceHSG.Controllers
             var pathParts = relativePath.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
             if (pathParts.Length == 0)
             {
-                Console.WriteLine("Result: DENIED (empty path)");
-                Console.WriteLine($"=====================================");
+                //Console.WriteLine("Result: DENIED (empty path)");
+                //Console.WriteLine($"=====================================");
                 return false;
             }
 
             var targetDepartment = pathParts[0];
-            Console.WriteLine($"Target Department: {targetDepartment}");
+            //Console.WriteLine($"Target Department: {targetDepartment}");
 
             // 检查目标部门是否是有效的部门
             if (!validDepartments.Contains(targetDepartment, StringComparer.OrdinalIgnoreCase))
             {
-                Console.WriteLine($"Result: DENIED (invalid department folder)");
-                Console.WriteLine($"=====================================");
+                //Console.WriteLine($"Result: DENIED (invalid department folder)");
+                //Console.WriteLine($"=====================================");
                 return false;
             }
 
             // 只有用户部门与目标部门匹配时才允许写操作
             bool hasPermission = userDepartment.Equals(targetDepartment, StringComparison.OrdinalIgnoreCase);
             
-            Console.WriteLine($"Result: {(hasPermission ? "ALLOWED" : "DENIED")}");
-            Console.WriteLine($"=====================================");
+            //Console.WriteLine($"Result: {(hasPermission ? "ALLOWED" : "DENIED")}");
+            //Console.WriteLine($"=====================================");
             
             return hasPermission;
         }

@@ -24,18 +24,14 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- 设置应用的基础路径 -->
-    <script>
-        window.appBasePath = '@Url.Content("~/")';
-        console.log('App Base Path set to:', window.appBasePath);
-    </script>
-    
     <script src="~/js/toast.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
+        window.appBasePath = '@Url.Content("~/")';
+        // console.log('App Base Path set to:', window.appBasePath);
+
         // 在所有页面加载时立即应用主题
         document.addEventListener('DOMContentLoaded', function() {
             const savedTheme = localStorage.getItem('theme') || 'light';

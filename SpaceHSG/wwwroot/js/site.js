@@ -18,31 +18,31 @@ function buildAppUrl(path) {
 
 // 调试函数 - 在浏览器控制台输入 debugPath() 来检查当前路径
 window.debugPath = function() {
-    console.log('===========================================');
-    console.log('DEBUG PATH INFO:');
-    console.log('  currentPath:', currentPath);
-    console.log('  currentPath type:', typeof currentPath);
-    console.log('  currentPath length:', currentPath ? currentPath.length : 'null/undefined');
-    console.log('  Is empty string?:', currentPath === '');
-    console.log('  window.location.href:', window.location.href);
-    console.log('  window.location.search:', window.location.search);
-    console.log('===========================================');
+    //console.log('===========================================');
+    //console.log('DEBUG PATH INFO:');
+    //console.log('  currentPath:', currentPath);
+    //console.log('  currentPath type:', typeof currentPath);
+    //console.log('  currentPath length:', currentPath ? currentPath.length : 'null/undefined');
+    //console.log('  Is empty string?:', currentPath === '');
+    //console.log('  window.location.href:', window.location.href);
+    //console.log('  window.location.search:', window.location.search);
+    //console.log('===========================================');
     return currentPath;
 };
 
 // 初始化函数，需要在页面加载后调用
 function initializeFileManager(path, url) {
-    console.log('===========================================');
-    console.log('initializeFileManager called');
-    console.log('  Raw path parameter:', path);
-    console.log('  Raw path type:', typeof path);
-    console.log('  Raw path length:', path ? path.length : 'null/undefined');
+    //console.log('===========================================');
+    //console.log('initializeFileManager called');
+    //console.log('  Raw path parameter:', path);
+    //console.log('  Raw path type:', typeof path);
+    //console.log('  Raw path length:', path ? path.length : 'null/undefined');
     
     // 同时检查URL参数
     const urlParams = new URLSearchParams(window.location.search);
     const urlPath = urlParams.get('path');
-    console.log('  URL path parameter:', urlPath);
-    console.log('===========================================');
+    //console.log('  URL path parameter:', urlPath);
+    //console.log('===========================================');
     
     // 确保 path 始终是字符串，优先使用传入的参数，如果为空则尝试从URL获取
     let finalPath = (path === null || path === undefined || path === 'null' || path === 'undefined' || path === '') ? '' : String(path);
@@ -50,17 +50,17 @@ function initializeFileManager(path, url) {
     // 如果传入的path为空，但URL中有path参数，使用URL中的path
     if (finalPath === '' && urlPath) {
         finalPath = urlPath;
-        console.log('Using path from URL instead:', finalPath);
+        //console.log('Using path from URL instead:', finalPath);
     }
     
     currentPath = finalPath;
     uploadUrl = url;
     
-    console.log('FINAL currentPath set to:', currentPath);
-    console.log('currentPath type:', typeof currentPath);
-    console.log('currentPath length:', currentPath.length);
-    console.log('Is empty?:', currentPath === '');
-    console.log('===========================================');
+    //console.log('FINAL currentPath set to:', currentPath);
+    //console.log('currentPath type:', typeof currentPath);
+    //console.log('currentPath length:', currentPath.length);
+    //console.log('Is empty?:', currentPath === '');
+    //console.log('===========================================');
 
     initThemeSystem();
 
