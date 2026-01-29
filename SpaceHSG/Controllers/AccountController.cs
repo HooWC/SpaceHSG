@@ -24,10 +24,10 @@ namespace SpaceHSG.Controllers
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
                 return Json(new { success = false, message = "Please enter username and password." });
 
-            //===== 1. Hardcoded Admin ===== NEED DELETE IN PRODUCTION =====    
-            if (username == "admin" && password == "admin")
+            //===== 1. Hardcoded Admin (admin/admin) - IT department, can New Folder/Delete in IT ===== REMOVE IN PRODUCTION =====
+            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && password == "admin")
             {
-                SetSession("admin", "Administrator", "IT", "IT");
+                SetSession("admin", "Administrator", "IT", "IT_Admin");
 
                 return Json(new
                 {
@@ -38,10 +38,8 @@ namespace SpaceHSG.Controllers
                     department = "IT",
                     role = "IT_Admin"
                 });
-
-                //return Json(new { success = true });
             }
-            //===== 1. Hardcoded Admin ===== NEED DELETE IN PRODUCTION ===== 
+            //===== END Hardcoded Admin =====
 
             // 2. AD User Login
             // username / hsg\\username / username@hsg.local
@@ -209,6 +207,7 @@ namespace SpaceHSG.Controllers
             HttpContext.Session.SetString("Username", user);
             HttpContext.Session.SetString("DisplayName", display);
             HttpContext.Session.SetString("UserDept", dept);
+            HttpContext.Session.SetString("Department", dept);  // HomeController uses "Department" for write permission
             HttpContext.Session.SetString("Role", role);
         }
 
