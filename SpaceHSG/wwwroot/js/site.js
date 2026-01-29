@@ -6,10 +6,61 @@ let uploadUrl = '';
 let selectedItems = new Set(); // 存储选中的项目
 let isRefreshing = false; // 防止重复刷新
 
+// 辅助函数：构建正确的应用URL
+function buildAppUrl(path) {
+    const basePath = window.appBasePath || '/';
+    // 移除开头的斜杠（如果有）
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // 确保basePath以斜杠结尾
+    const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
+    return normalizedBase + cleanPath;
+}
+
+// 调试函数 - 在浏览器控制台输入 debugPath() 来检查当前路径
+window.debugPath = function() {
+    //console.log('===========================================');
+    //console.log('DEBUG PATH INFO:');
+    //console.log('  currentPath:', currentPath);
+    //console.log('  currentPath type:', typeof currentPath);
+    //console.log('  currentPath length:', currentPath ? currentPath.length : 'null/undefined');
+    //console.log('  Is empty string?:', currentPath === '');
+    //console.log('  window.location.href:', window.location.href);
+    //console.log('  window.location.search:', window.location.search);
+    //console.log('===========================================');
+    return currentPath;
+};
+
 // 初始化函数，需要在页面加载后调用
 function initializeFileManager(path, url) {
-    currentPath = path;
+    //console.log('===========================================');
+    //console.log('initializeFileManager called');
+    //console.log('  Raw path parameter:', path);
+    //console.log('  Raw path type:', typeof path);
+    //console.log('  Raw path length:', path ? path.length : 'null/undefined');
+    
+    // 同时检查URL参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPath = urlParams.get('path');
+    //console.log('  URL path parameter:', urlPath);
+    //console.log('===========================================');
+    
+    // 确保 path 始终是字符串，优先使用传入的参数，如果为空则尝试从URL获取
+    let finalPath = (path === null || path === undefined || path === 'null' || path === 'undefined' || path === '') ? '' : String(path);
+    
+    // 如果传入的path为空，但URL中有path参数，使用URL中的path
+    if (finalPath === '' && urlPath) {
+        finalPath = urlPath;
+        //console.log('Using path from URL instead:', finalPath);
+    }
+    
+    currentPath = finalPath;
     uploadUrl = url;
+    
+    //console.log('FINAL currentPath set to:', currentPath);
+    //console.log('currentPath type:', typeof currentPath);
+    //console.log('currentPath length:', currentPath.length);
+    //console.log('Is empty?:', currentPath === '');
+    //console.log('===========================================');
 
     initThemeSystem();
 
@@ -33,6 +84,87 @@ function initDomElements() {
 
 let dragCounter = 0;
 let deleteItemPath = '';
+
+// ============== 权限检查函数 ==============
+
+/**
+ * 检查用户是否对当前路径有写权限
+ * @returns {boolean} true表示有权限，false表示无权限
+ */
+function hasWritePermission() {
+    const userDepartment = window.userDepartment || '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPath = urlParams.get('path') || '';
+    
+    console.log('=== Permission Check ===');
+    console.log('User Department:', userDepartment);
+    console.log('Current Path:', currentPath);
+    
+    // 如果在根目录，不允许任何写操作
+    if (!currentPath || currentPath === '') {
+        console.log('Result: NO (root directory)');
+        return false;
+    }
+    
+    // 提取路径中的第一级文件夹（部门文件夹）
+    const pathParts = currentPath.split(/[\\\/]/).filter(p => p);
+    if (pathParts.length === 0) {
+        console.log('Result: NO (empty path)');
+        return false;
+    }
+    
+    const targetDepartment = pathParts[0];
+    console.log('Target Department:', targetDepartment);
+    
+    // 只有用户部门与目标部门匹配时才允许写操作
+    const hasPermission = userDepartment.toLowerCase() === targetDepartment.toLowerCase();
+    console.log('Result:', hasPermission ? 'YES' : 'NO');
+    
+    return hasPermission;
+}
+
+/**
+ * 根据权限显示/隐藏按钮
+ */
+function checkAndUpdateButtonsVisibility() {
+    const hasPermission = hasWritePermission();
+    
+    console.log('=== Updating Button Visibility ===');
+    console.log('Has Write Permission:', hasPermission);
+    
+    // 获取所有需要权限的元素
+    const uploadBtn = document.getElementById('uploadBtn');
+    const newFolderBtn = document.getElementById('newFolderBtn');
+    const deleteButtons = document.querySelectorAll('.fm-delete-btn, .delete-btn');
+    const batchActionsArea = document.getElementById('batchActions');
+    const selectAllContainer = document.querySelector('.fm-select-all-container');
+    
+    // 获取所有list view中的checkbox
+    const allCheckboxContainers = document.querySelectorAll('.fm-list-checkbox-container.fm-write-permission-only');
+    
+    if (hasPermission) {
+        // 有权限：显示所有按钮和checkbox
+        if (uploadBtn) uploadBtn.style.display = '';
+        if (newFolderBtn) newFolderBtn.style.display = '';
+        if (selectAllContainer) selectAllContainer.style.display = '';
+        deleteButtons.forEach(btn => btn.style.display = '');
+        allCheckboxContainers.forEach(container => container.style.display = '');
+        console.log('Buttons enabled (user has write permission)');
+    } else {
+        // 无权限：隐藏所有写操作按钮和checkbox
+        if (uploadBtn) uploadBtn.style.display = 'none';
+        if (newFolderBtn) newFolderBtn.style.display = 'none';
+        if (selectAllContainer) selectAllContainer.style.display = 'none';
+        if (batchActionsArea) batchActionsArea.style.display = 'none';
+        deleteButtons.forEach(btn => btn.style.display = 'none');
+        allCheckboxContainers.forEach(container => container.style.display = 'none');
+        console.log('Buttons disabled (user has no write permission)');
+    }
+}
+
+// 将函数导出到全局
+window.hasWritePermission = hasWritePermission;
+window.checkAndUpdateButtonsVisibility = checkAndUpdateButtonsVisibility;
 
 // ============== 主题切换 ==============
 window.toggleThemeNow = function () {
@@ -235,11 +367,8 @@ function handleFilesWithStructure(filesWithStructure) {
             if (uploadProgress) uploadProgress.classList.remove('active');
 
             if (data.success) {
-                showToast('Upload Successful', data.message, 'success');
-                // 延迟一点时间然后刷新，确保服务器处理完成
-                setTimeout(() => {
-                    refreshFileListAPI();
-                }, 500);
+                // 上传成功，立即刷新页面
+                window.location.reload();
             } else {
                 showToast('Upload Failed', data.message, 'error');
             }
@@ -272,11 +401,8 @@ function handleFiles(fileList) {
             if (uploadProgress) uploadProgress.classList.remove('active');
 
             if (data.success) {
-                showToast('Upload Successful', data.message, 'success');
-                // 延迟一点时间然后刷新，确保服务器处理完成
-                setTimeout(() => {
-                    refreshFileListAPI();
-                }, 500);
+                // 上传成功，立即刷新页面
+                window.location.reload();
             } else {
                 showToast('Upload Failed', data.message, 'error');
             }
@@ -302,35 +428,84 @@ function setupFileInput() {
 
 // Create folder
 function createFolder() {
+    console.log('===========================================');
+    console.log('=== CREATE FOLDER DEBUG (CLIENT) ===');
+    console.log('===========================================');
+
     const folderNameInput = document.getElementById('folderNameInput');
-    if (!folderNameInput) return;
-
-    const folderName = folderNameInput.value.trim();
-
-    if (!folderName) {
-        showToast('Invalid Input', 'Please enter a folder name', 'warning');
+    if (!folderNameInput) {
+        console.error('folderNameInput not found!');
         return;
     }
 
-    fetch('/Home/CreateFolder?path=' + encodeURIComponent(currentPath) + '&folderName=' + encodeURIComponent(folderName), {
-        method: 'POST'
+    let folderName = folderNameInput.value.trim();
+    console.log('Original folder name:', folderName);
+
+    // 清理文件夹名：移除控制字符
+    folderName = folderName.replace(/[\x00-\x1F\x7F]/g, '');
+    console.log('Cleaned folder name:', folderName);
+
+    if (!folderName) {
+        showToast('Invalid Input', 'Please enter a valid folder name', 'warning');
+        return;
+    }
+
+    // ========== 关键修复：从URL重新读取当前路径 ==========
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPath = urlParams.get('path') || '';
+    
+    console.log('-------------------------------------------');
+    console.log('PATH CHECK:');
+    console.log('  Global currentPath:', currentPath);
+    console.log('  URL path parameter:', urlPath);
+    console.log('  Will use:', urlPath);
+    console.log('  Folder to create:', folderName);
+    console.log('-------------------------------------------');
+    
+    // 使用URL中的path参数，而不是全局的currentPath
+    const pathToUse = urlPath;
+
+    // 使用 URLSearchParams 确保正确编码
+    const params = new URLSearchParams();
+    params.append('path', pathToUse);
+    params.append('folderName', folderName);
+
+    const fullUrl = buildAppUrl('Home/CreateFolder') + '?' + params.toString();
+    console.log('Request URL:', fullUrl);
+    console.log('===========================================');
+
+    fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
     })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('===========================================');
+            console.log('Server Response:', data);
+            console.log('===========================================');
+            
             if (data.success) {
-                showToast('Success', data.message, 'success');
                 hideCreateFolderModal();
-                // 立即刷新文件列表
-                setTimeout(() => {
-                    refreshFileListAPI();
-                }, 300);
+                // 立即刷新页面以显示新文件夹
+                window.location.reload();
             } else {
-                showToast('Error', data.message, 'error');
+                showToast('Error', data.message || 'Failed to create folder', 'error');
             }
         })
         .catch(error => {
             console.error('Create folder error:', error);
-            showToast('Error', 'Network error occurred', 'error');
+            console.error('Error details:', error.message, error.stack);
+            showToast('Error', `Network error: ${error.message}`, 'error');
         });
 }
 
@@ -341,168 +516,57 @@ function confirmDelete() {
     const formData = new FormData();
     formData.append('path', deleteItemPath);
 
-    fetch('/Home/Delete', {
+    fetch(buildAppUrl('Home/Delete'), {
         method: 'POST',
         body: formData
     })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            console.log('Delete response ok:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Delete response data:', data);
+            
             if (data.success) {
-                showToast('Success', data.message, 'success');
                 hideDeleteModal();
-                // 立即刷新文件列表
-                setTimeout(() => {
-                    refreshFileListAPI();
-                }, 300);
+                // 立即刷新页面以反映删除操作
+                window.location.reload();
             } else {
-                showToast('Error', data.message, 'error');
+                showToast('Error', data.message || 'Failed to delete', 'error');
             }
         })
         .catch(error => {
             console.error('Delete error:', error);
-            showToast('Error', 'Network error occurred', 'error');
+            console.error('Error details:', error.message, error.stack);
+            showToast('Error', `Network error: ${error.message}`, 'error');
         });
 }
 
-// ============== 核心：修复的刷新函数 ==============
+// ============== 核心：简化的刷新函数 ==============
 
-// 主要的刷新函数 - 使用API获取文件列表
+// 主要的刷新函数 - 直接重新加载页面
 function refreshFileListAPI() {
     if (isRefreshing) {
         console.log('Already refreshing, skipping...');
         return;
     }
 
-    console.log('Refreshing file list via API...');
+    console.log('Refreshing file list by reloading page...');
     isRefreshing = true;
 
-    const filesContainer = document.querySelector('.fm-files-container');
-    if (!filesContainer) {
-        console.error('File container not found');
-        isRefreshing = false;
-        return;
-    }
-
-    // 保存当前选中状态
-    const selectedPaths = Array.from(selectedItems);
-
-    // 保存原始内容
-    const originalContent = filesContainer.innerHTML;
-
-    // 显示加载状态
-    filesContainer.innerHTML = `
-        <div class="fm-files-header">
-            <div class="fm-files-count">Refreshing...</div>
-        </div>
-        <div class="fm-empty" style="padding: 40px 20px;">
-            <div class="fm-spinner" style="margin: 0 auto 20px;"></div>
-            <div class="fm-empty-text">Updating file list...</div>
-        </div>
-    `;
-
-    // 使用专门的API端点获取文件列表
-    fetch(`/Home/GetFilesHtml?path=${encodeURIComponent(currentPath)}&t=${new Date().getTime()}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.text();
-        })
-        .then(html => {
-            // 检查返回的HTML是否有效
-            if (!html || html.includes('Error:') || html.includes('error')) {
-                throw new Error('Invalid response from server');
-            }
-
-            // 更新文件容器内容
-            filesContainer.innerHTML = html;
-
-            // 重新绑定事件
-            reattachEventListeners();
-
-            // 恢复视图设置
-            const savedView = localStorage.getItem('fileManagerView');
-            if (savedView === 'list') {
-                switchView('list');
-            }
-
-            // 恢复选中状态
-            if (selectedPaths.length > 0) {
-                restoreSelection(selectedPaths);
-            }
-
-            // 更新文件数量显示
-            updateFileCount();
-
-            console.log('File list refreshed successfully via API');
-            showToast('Updated', 'File list refreshed', 'success');
-        })
-        .catch(error => {
-            console.error('Error refreshing file list via API:', error);
-
-            // 回退到旧方法
-            console.log('Falling back to full page refresh method...');
-            refreshFileListWithoutReload();
-        })
-        .finally(() => {
-            isRefreshing = false;
-        });
+    // 直接重新加载当前页面
+    window.location.reload();
 }
 
-// 旧的方法作为后备方案
+// 旧的方法 - 保留作为备用
 function refreshFileListWithoutReload() {
-    console.log('Refreshing file list without reload...');
-
-    const filesContainer = document.querySelector('.fm-files-container');
-    if (!filesContainer) return;
-
-    const originalContent = filesContainer.innerHTML;
-
-    filesContainer.innerHTML = `
-        <div class="fm-files-header">
-            <div class="fm-files-count">Refreshing...</div>
-        </div>
-        <div class="fm-empty" style="padding: 40px 20px;">
-            <div class="fm-spinner" style="margin: 0 auto 20px;"></div>
-            <div class="fm-empty-text">Updating file list...</div>
-        </div>
-    `;
-
-    setTimeout(() => {
-        const pathParam = currentPath === '' ? '' : `?path=${encodeURIComponent(currentPath)}`;
-        fetch(window.location.pathname + pathParam + '&t=' + new Date().getTime())
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.text();
-            })
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const newFilesContainer = doc.querySelector('.fm-files-container');
-
-                if (newFilesContainer) {
-                    filesContainer.innerHTML = newFilesContainer.innerHTML;
-                    reattachEventListeners();
-
-                    const savedView = localStorage.getItem('fileManagerView');
-                    if (savedView === 'list') {
-                        switchView('list');
-                    }
-
-                    showToast('Updated', 'File list refreshed', 'success');
-                    console.log('File list refreshed successfully');
-                } else {
-                    throw new Error('Could not find file container');
-                }
-            })
-            .catch(error => {
-                console.error('Error refreshing file list:', error);
-                showToast('Refreshing', 'Reloading page...', 'info');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 800);
-            });
-    }, 500);
+    console.log('Using fallback: reload page...');
+    window.location.reload();
 }
 
 // 更新文件数量显示
@@ -722,7 +786,7 @@ function batchDelete() {
         const formData = new FormData();
         formData.append('path', itemPath);
 
-        return fetch('/Home/Delete', {
+        return fetch(buildAppUrl('Home/Delete'), {
             method: 'POST',
             body: formData
         })
@@ -735,22 +799,11 @@ function batchDelete() {
             const successCount = results.filter(r => r.success).length;
             const failedCount = results.filter(r => !r.success).length;
 
-            // 显示结果
-            if (failedCount === 0) {
-                showToast('Success', `Successfully deleted ${successCount} item(s)`, 'success');
-            } else {
-                showToast('Partial Success',
-                    `Deleted ${successCount} item(s), failed to delete ${failedCount} item(s)`,
-                    'warning');
-            }
-
-            // 清除选择并刷新列表
+            // 清除选择
             clearSelection();
 
-            // 立即刷新文件列表
-            setTimeout(() => {
-                refreshFileListAPI();
-            }, 500);
+            // 立即刷新页面以反映删除操作
+            window.location.reload();
         })
         .catch(error => {
             console.error('Batch delete error:', error);
@@ -837,16 +890,27 @@ function reattachEventListeners() {
         };
     });
 
-    // 为列表视图操作按钮重新绑定事件
+    // 为列表视图打开按钮重新绑定事件
+    document.querySelectorAll('.fm-list-actions .open-icon-btn').forEach(btn => {
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            const listItem = this.closest('.fm-list-item');
+            const itemPath = listItem.dataset.path;
+            window.location.href = buildAppUrl('Home/Index') + '?path=' + encodeURIComponent(itemPath);
+        };
+    });
+
+    // 为列表视图下载按钮重新绑定事件
     document.querySelectorAll('.fm-list-actions .download-icon-btn').forEach(btn => {
         btn.onclick = function (e) {
             e.stopPropagation();
             const listItem = this.closest('.fm-list-item');
             const itemPath = listItem.dataset.path;
-            window.location.href = '/Home/Download?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Download') + '?path=' + encodeURIComponent(itemPath);
         };
     });
 
+    // 为列表视图删除按钮重新绑定事件
     document.querySelectorAll('.fm-list-actions .delete-icon-btn').forEach(btn => {
         btn.onclick = function (e) {
             e.stopPropagation();
@@ -854,16 +918,6 @@ function reattachEventListeners() {
             const name = listItem.dataset.name;
             const path = listItem.dataset.path;
             showDeleteModal(name, path);
-        };
-    });
-
-    // 为列表视图打开按钮重新绑定事件
-    document.querySelectorAll('.fm-list-actions .open-icon-btn').forEach(btn => {
-        btn.onclick = function (e) {
-            e.stopPropagation();
-            const listItem = this.closest('.fm-list-item');
-            const itemPath = listItem.dataset.path;
-            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
         };
     });
 
@@ -986,6 +1040,10 @@ function switchView(view) {
 
 // Navigate to item
 function navigateToItem(url) {
+    // 从URL中提取路径以便调试
+    const urlObj = new URL(url, window.location.origin);
+    const pathParam = urlObj.searchParams.get('path');
+    console.log('Navigating to:', url, 'Path:', pathParam);
     window.location.href = url;
 }
 
@@ -997,9 +1055,9 @@ function navigateToItemByElement(element) {
         const itemPath = listItem.dataset.path;
 
         if (itemType === 'Folder') {
-            window.location.href = '/Home/Index?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Index') + '?path=' + encodeURIComponent(itemPath);
         } else {
-            window.location.href = '/Home/Download?path=' + encodeURIComponent(itemPath);
+            window.location.href = buildAppUrl('Home/Download') + '?path=' + encodeURIComponent(itemPath);
         }
     }
 }

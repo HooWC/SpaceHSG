@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
+using System;
+using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using Microsoft.AspNetCore.Http;
-using System;
+using Microsoft.AspNetCore.Mvc;
 
 namespace SpaceHSG.Controllers
 {
@@ -12,9 +13,8 @@ namespace SpaceHSG.Controllers
         public IActionResult Login()
         {
             if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Username")))
-            {
                 return RedirectToAction("Index", "Home");
-            }
+
             return View("~/Views/Home/Login.cshtml");
         }
 
@@ -22,52 +22,203 @@ namespace SpaceHSG.Controllers
         public IActionResult Login(string username, string password)
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-            {
                 return Json(new { success = false, message = "Please enter username and password." });
-            }
 
-            // ===== HARDCODED ADMIN USER (admin/admin) - remove this in production =====
-            if (username == "admin" && password == "admin")
+            //===== 1. Hardcoded Admin (admin/admin) - IT department, can New Folder/Delete in IT ===== REMOVE IN PRODUCTION =====
+            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && password == "admin")
             {
-                HttpContext.Session.SetString("Username", "admin");
-                HttpContext.Session.SetString("DisplayName", "Administrator");
-                HttpContext.Session.SetString("Role", "IT_Admin");
+                SetSession("admin", "Administrator", "IT", "IT_Admin");
 
-                return Json(new { success = true, message = "Login Success (hardcoded admin)." });
+                return Json(new
+                {
+                    success = true,
+                    message = "Login Success! (Admin Test Account)",
+                    username = "admin",
+                    displayName = "Administrator",
+                    department = "IT",
+                    role = "IT_Admin"
+                });
             }
-            // ===================== END HARDCODED ADMIN BLOCK ==========================
+            //===== END Hardcoded Admin =====
+
+            // 2. AD User Login
+            // username / hsg\\username / username@hsg.local
+            string inputUser = username.Trim();
+            string netbiosDomain = "hsg";
+            string samAccountName = inputUser;
+            string bindUserName = inputUser;
+
+            if (inputUser.Contains("@"))
+            {
+                // user@hsg.local
+                samAccountName = inputUser.Split('@')[0];
+                bindUserName = inputUser;
+            }
+            else if (inputUser.Contains("\\"))
+            {
+                // hsg\\user
+                var parts = inputUser.Split('\\');
+                if (parts.Length == 2)
+                {
+                    samAccountName = parts[1];
+                }
+                bindUserName = inputUser;
+            }
+            else
+            {
+                samAccountName = inputUser;
+                bindUserName = $"{netbiosDomain}\\{inputUser}";
+            }
+
+            // Using DirectoryEntry Checking
+            string domainPath = "LDAP://hsg.local";
 
             try
             {
-                using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, "hsg.local", username, password))
+                using (DirectoryEntry entry = new DirectoryEntry(domainPath, bindUserName, password))
                 {
-                    UserPrincipal user = UserPrincipal.FindByIdentity(pc, username);
+                    object nativeObject = entry.NativeObject;
 
-                    if (user != null)
+                    using (DirectorySearcher searcher = new DirectorySearcher(entry))
                     {
-                        HttpContext.Session.SetString("Username", user.SamAccountName);
-                        HttpContext.Session.SetString("DisplayName", user.DisplayName ?? username);
+                        searcher.Filter = $"(sAMAccountName={samAccountName})";
+                        searcher.PropertiesToLoad.Add("displayName");
+                        searcher.PropertiesToLoad.Add("distinguishedName");
 
-                        string dn = user.DistinguishedName;
-                        string role = dn.Contains("OU=IT") ? "IT_Admin" : "User";
-                        HttpContext.Session.SetString("Role", role);
+                        SearchResult result = searcher.FindOne();
+                        if (result == null)
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = "Login Failed: AD user not found."
+                            });
+                        }
 
-                        return Json(new { success = true, message = "Login Success！" });
-                    }
-                    else
-                    {
-                        return Json(new { success = false, message = "Verified, but user details are unavailable." });
+                        string displayName = (result.Properties["displayName"].Count > 0
+                            ? result.Properties["displayName"][0]?.ToString()
+                            : samAccountName) ?? samAccountName;
+                        string dn = result.Properties["distinguishedName"].Count > 0
+                            ? result.Properties["distinguishedName"][0]?.ToString()
+                            : string.Empty;
+
+                        string userDept = GetDeptFromDN(dn);
+                        string role = userDept == "IT" ? "IT_Admin" : "User";
+
+                        SetSession(samAccountName, displayName, userDept, role);
+
+                        return Json(new
+                        {
+                            success = true,
+                            message = "Login Success!",
+                            username = samAccountName,
+                            displayName,
+                            department = userDept,
+                            role
+                        });
                     }
                 }
             }
+            catch (DirectoryServicesCOMException comEx)
+            {
+                string extended = (comEx.ExtendedErrorMessage ?? string.Empty).ToLowerInvariant();
+
+                // data 773: user must change password at next logon（从未修改过默认密码）
+                if (extended.Contains("data 773"))
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Login Failed: Your password has never been changed. Please change your default password on Windows/AD first, then login here.",
+                        detail = comEx.Message
+                    });
+                }
+
+                // data 532: password expired（曾经改过密码，但已过期） -> Can Login
+                if (extended.Contains("data 532"))
+                {
+                    try
+                    {
+                        using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, "hsg.local"))
+                        {
+                            UserPrincipal user = UserPrincipal.FindByIdentity(pc, samAccountName);
+                            if (user == null)
+                            {
+                                return Json(new
+                                {
+                                    success = false,
+                                    message = "Login Failed: AD user not found when handling expired password.",
+                                    detail = comEx.Message
+                                });
+                            }
+
+                            string displayName = user.DisplayName ?? samAccountName;
+                            string dn = user.DistinguishedName ?? string.Empty;
+
+                            string userDept = GetDeptFromDN(dn);
+                            string role = userDept == "IT" ? "IT_Admin" : "User";
+
+                            SetSession(user.SamAccountName, displayName, userDept, role);
+
+                            return Json(new
+                            {
+                                success = true,
+                                message = "Login Success! (password expired in AD, but accepted here as per policy)",
+                                username = user.SamAccountName,
+                                displayName,
+                                department = userDept,
+                                role
+                            });
+                        }
+                    }
+                    catch (Exception readEx)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = "Login Failed: could not read AD user info after password-expired response.",
+                            detail = readEx.Message
+                        });
+                    }
+                }
+
+                // 其他情况：密码错误 / 账号受限等 / Errors
+                return Json(new
+                {
+                    success = false,
+                    message = "Login Failed: The user name or password is incorrect or account not allowed to login.",
+                    detail = comEx.Message
+                });
+            }
             catch (Exception ex)
             {
-                string errorDetail = ex.Message;
-
-                if (errorDetail.Contains("locked out")) errorDetail = "Account Locked Out.";
-
-                return Json(new { success = false, message = "AD refuses to login: " + errorDetail, detail = ex.ToString() });
+                // ex.Message
+                return Json(new
+                {
+                    success = false,
+                    message = "Login Failed: unexpected error while contacting Active Directory.",
+                    detail = ex.Message
+                });
             }
+        }
+
+        private void SetSession(string user, string display, string dept, string role)
+        {
+            HttpContext.Session.SetString("Username", user);
+            HttpContext.Session.SetString("DisplayName", display);
+            HttpContext.Session.SetString("UserDept", dept);
+            HttpContext.Session.SetString("Department", dept);  // HomeController uses "Department" for write permission
+            HttpContext.Session.SetString("Role", role);
+        }
+
+        private string GetDeptFromDN(string dn)
+        {
+            string[] departments = { "Admin", "Audit", "Finance", "IT", "Logistics", "Management", "Production", "Report User", "Sales" };
+            foreach (var dept in departments)
+            {
+                if (dn.Contains($"OU={dept}", StringComparison.OrdinalIgnoreCase)) return dept;
+            }
+            return "Other";
         }
 
         public IActionResult Logout()
