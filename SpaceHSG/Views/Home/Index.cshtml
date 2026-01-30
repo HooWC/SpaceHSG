@@ -205,15 +205,15 @@
             <div class="fm-grid-view" id="gridView">
                 @foreach (dynamic item in ViewBag.Items)
                 {
-                    <div class="fm-grid-item" data-path="@item.Path" data-name="@item.Name" data-type="@item.Type">
+                    <div class="fm-grid-item" data-path="@item.Path" data-name="@item.Name" data-type="@item.Type" onclick="navigateToItem('@(item.Type == "Folder" ?
+                                                                                                                                                                                                                                                                                         Url.Action("Index", new { path = item.Path }) :
+                                                                                                                                                                                                                                                                                         Url.Action("Download", new { path = item.Path }))')">
 
                         <div class="fm-grid-checkbox-container fm-write-permission-only" onclick="event.stopPropagation();">
                             <div class="fm-grid-checkbox"></div>
                         </div>
 
-                        <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : ((string)item.Extension).TrimStart('.'))" onclick="navigateToItem('@(item.Type == "Folder" ?
-                                                                                                                                                                      Url.Action("Index", new { path = item.Path }) :
-                                                                                                                                                                      Url.Action("Download", new { path = item.Path }))')">
+                        <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : ((string)item.Extension).TrimStart('.'))" >
                             @if (item.Type == "Folder")
                             {
                                 <text>📁</text>
