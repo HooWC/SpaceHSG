@@ -46,6 +46,50 @@
 
 <script src="~/js/Login/index.js" asp-append-version="true"></script>
 
+
+<!-- ??? Enter ????? -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ????????
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('loginBtn');
+
+        // ??????? Enter ??????
+        if (usernameInput) {
+            usernameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (passwordInput) {
+                        passwordInput.focus();
+                        passwordInput.select();
+                    }
+                }
+            });
+        }
+
+        // ?????? Enter ????
+        if (passwordInput) {
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (loginButton) {
+                        loginButton.click();
+                    }
+                }
+            });
+        }
+
+        // ????????????????
+        if (usernameInput) {
+            setTimeout(() => {
+                usernameInput.focus();
+                usernameInput.select();
+            }, 100);
+        }
+    });
+</script>
+
 <script>
     window.loginConfig = {
         loginUrl: '@Url.Action("Login", "Account")',

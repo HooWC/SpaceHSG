@@ -1464,21 +1464,26 @@ onedrive-tyle。css
 }
 
 .fm-grid-checkbox.checked {
-    background: var(--primary-blue);
-    border-color: var(--primary-blue);
+    background-color: var(--primary-color, #2196f3);
+    border-color: var(--primary-color, #2196f3);
 }
 
     .fm-grid-checkbox.checked::after {
-        content: '✓';
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: translate(-50%, -60%) rotate(45deg);
     }
 
-/* 选中状态下的网格项 */
+/* 网格视图选中状态 */
 .fm-grid-item.selected {
-    background: var(--selected-bg);
-    border-color: var(--primary-blue);
+    background-color: var(--selected-bg, #e3f2fd);
+    border-color: var(--selected-border, #2196f3);
 }
 
 /* ============== 根目录特殊样式 ============== */

@@ -738,7 +738,7 @@ function selectAllItems() {
         item.classList.add('selected');
         const checkbox = item.querySelector('.fm-list-checkbox');
         if (checkbox) checkbox.classList.add('checked');
-        selectedItems.add(itemPath);
+        if (itemPath) selectedItems.add(itemPath);
     });
 
     // 选择所有网格视图项目
@@ -911,11 +911,23 @@ function clearSelection() {
     });
 
     // 移除所有选中的样式（网格视图）
-    document.querySelectorAll('.fm-grid-item.selected').forEach(griditem => {
-        griditem.classList.remove('selected');
+    document.querySelectorAll('.fm-grid-item.selected').forEach(gridItem => {
+        gridItem.classList.remove('selected');
+
+        // 修复：清除网格视图的checkbox选中状态
+        const checkbox = gridItem.querySelector('.fm-grid-checkbox');
+        if (checkbox) {
+            checkbox.classList.remove('checked');
+        }
     });
 
+    // 移除列表视图的checkbox选中状态
     document.querySelectorAll('.fm-list-checkbox.checked').forEach(checkbox => {
+        checkbox.classList.remove('checked');
+    });
+
+    // 移除网格视图的checkbox选中状态（额外确保）
+    document.querySelectorAll('.fm-grid-checkbox.checked').forEach(checkbox => {
         checkbox.classList.remove('checked');
     });
 
