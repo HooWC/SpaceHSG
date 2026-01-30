@@ -107,8 +107,28 @@
         </div>
     </div>
 
+    <!-- 批量删除确认模态框 -->
+    <div class="fm-modal-overlay" id="batchDeleteModal" style="display: none;">
+        <div class="fm-modal-box">
+            <div class="fm-modal-icon-header danger">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+            </div>
+            <div class="fm-modal-content">
+                <h3>Delete Selected Items</h3>
+                <p>Are you sure you want to delete <strong id="batchDeleteCount">0</strong> selected item(s)?</p>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 12px;">This action cannot be undone.</p>
+            </div>
+            <div class="fm-modal-actions">
+                <button class="fm-btn-text" onclick="hideBatchDeleteModal()">Cancel</button>
+                <button class="fm-btn-danger" onclick="confirmBatchDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
-    <div class="fm-modal-overlay" id="deleteModal">
+    <!-- <div class="fm-modal-overlay" id="deleteModal">
         <div class="fm-modal">
             <div class="fm-modal-header">
                 <h3 class="fm-modal-title">Confirm Delete</h3>
@@ -123,7 +143,7 @@
                 <button class="fm-btn fm-btn-danger" onclick="confirmDelete()">Delete</button>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Error Message -->
     @if (ViewBag.Error != null)
@@ -138,7 +158,7 @@
         <div class="fm-files-header">
             <!-- 左侧：全选按钮 + 文件统计 -->
             <div class="fm-header-left">
-                <div class="fm-select-all-container">
+                <div class="fm-select-all-container fm-write-permission-only">
                     <button class="fm-select-all-btn" id="selectAllHeader" title="Select all items">
                         <span class="fm-select-all-icon"></span>
                         All
@@ -146,14 +166,21 @@
                 </div>
                 <div class="fm-files-count">
                     @{
-                        var itemsList = ViewBag.Items as IEnumerable<dynamic>;
+                        // 修复：安全处理ViewBag.Items的类型转换
+                        var itemsList = ViewBag.Items as System.Collections.IEnumerable;
                         var folderCount = 0;
                         var fileCount = 0;
 
                         if (itemsList != null)
                         {
-                            folderCount = itemsList.Count(x => x.Type == "Folder");
-                            fileCount = itemsList.Count(x => x.Type == "File");
+                            // 使用动态类型访问或安全的转换方式
+                            foreach (dynamic item in itemsList)
+                            {
+                                if (item.Type == "Folder")
+                                    folderCount++;
+                                else
+                                    fileCount++;
+                            }
                         }
                     }
                     @folderCount folders, @fileCount files
@@ -161,7 +188,7 @@
             </div>
 
             <!-- 右侧：批量操作按钮 (默认隐藏) -->
-            <div class="fm-batch-actions" id="batchActions" style="display: none;">
+            <div class="fm-batch-actions fm-write-permission-only" id="batchActions" style="display: none;">
                 <div class="fm-selected-count" id="selectedCount">
                     <span id="selectedNumber">0</span> selected
                 </div>
@@ -172,17 +199,21 @@
             </div>
         </div>
 
-        @if (ViewBag.Items != null && ViewBag.Items.Count > 0)
+        @if (ViewBag.Items != null && ((System.Collections.ICollection)ViewBag.Items).Count > 0)
         {
             <!-- Grid View (Default) -->
             <div class="fm-grid-view" id="gridView">
-                @foreach (var item in ViewBag.Items)
+                @foreach (dynamic item in ViewBag.Items)
                 {
-                    <div class="fm-grid-item" data-path="@item.Path" onclick="navigateToItem('@(item.Type == "Folder" ?
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        Url.Action("Index", new { path = item.Path }) :
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        Url.Action("Download", new { path = item.Path }))')">
-                        <button class="fm-delete-btn" onclick="event.stopPropagation(); showDeleteModal('@item.Name', '@item.Path')" title="Delete">🗑️</button>
-                        <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))">
+                    <div class="fm-grid-item" data-path="@item.Path" data-name="@item.Name" data-type="@item.Type">
+
+                        <div class="fm-grid-checkbox-container fm-write-permission-only" onclick="event.stopPropagation();">
+                            <div class="fm-grid-checkbox"></div>
+                        </div>
+
+                        <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : ((string)item.Extension).TrimStart('.'))" onclick="navigateToItem('@(item.Type == "Folder" ?
+                                                                                                                                                                      Url.Action("Index", new { path = item.Path }) :
+                                                                                                                                                                      Url.Action("Download", new { path = item.Path }))')">
                             @if (item.Type == "Folder")
                             {
                                 <text>📁</text>
@@ -209,9 +240,10 @@
             <div class="fm-list-view" id="listView" style="display: none;">
                 <div class="fm-list-header">
                     <!-- 全选复选框 -->
-                    <div class="fm-list-checkbox-container fm-write-permission-only" onclick="toggleSelectAll()">
+                    <div class="fm-list-checkbox-container fm-write-permission-only" id="listSelectAllContainer">
                         <div class="fm-list-checkbox" id="selectAllCheckbox"></div>
                     </div>
+
                     <div></div>
                     <div>Name</div>
                     <div>Type</div>
@@ -219,13 +251,13 @@
                     <div>Modified</div>
                     <div>Actions</div>
                 </div>
-                @foreach (var item in ViewBag.Items)
+                @foreach (dynamic item in ViewBag.Items)
                 {
                     <div class="fm-list-item" data-path="@item.Path" data-name="@item.Name" data-type="@item.Type">
                         <div class="fm-list-checkbox-container fm-write-permission-only" onclick="event.stopPropagation();">
                             <div class="fm-list-checkbox"></div>
                         </div>
-                        <div class="fm-list-icon fm-icon-@(item.Type == "Folder" ? "folder" : item.Extension.TrimStart('.'))"
+                        <div class="fm-list-icon fm-icon-@(item.Type == "Folder" ? "folder" : ((string)item.Extension).TrimStart('.'))"
                              onclick="navigateToItemByElement(this)">
                             @if (item.Type == "Folder")
                             {
@@ -257,7 +289,7 @@
                                 <text>—</text>
                             }
                         </div>
-                        <div class="fm-list-date" onclick="navigateToItemByElement(this)">@item.Modified.ToString("MMM dd, yyyy")</div>
+                        <div class="fm-list-date" onclick="navigateToItemByElement(this)">@(((DateTime)item.Modified).ToString("MMM dd, yyyy"))</div>
                         <div class="fm-list-actions" onclick="event.stopPropagation()">
                             @if (item.Type == "File")
                             {
@@ -271,9 +303,6 @@
                                     <span class="fm-action-icon">📂</span>
                                 </button>
                             }
-                            @* <button class="fm-action-btn delete-icon-btn" title="Delete">
-                                <span class="fm-action-icon" style="color: #e81123;">🗑️</span>
-                            </button> *@
                         </div>
                     </div>
                 }
@@ -335,25 +364,14 @@
 <script>
     // 页面加载后初始化
     document.addEventListener('DOMContentLoaded', function() {
-        @* console.log('===========================================');
-        console.log('PAGE LOAD - Index.cshtml');
-        console.log('ViewBag.RelativePath:', '@ViewBag.RelativePath');
-        console.log('ViewBag.UserDepartment:', '@ViewBag.UserDepartment');
-        console.log('==========================================='); *@
-
         // ========== 设置全局用户信息 ==========
         window.userDepartment = '@(ViewBag.UserDepartment ?? "Unknown")';
         window.userDisplayName = '@(ViewBag.UserDisplayName ?? "")';
         window.userRole = '@(ViewBag.UserRole ?? "User")';
-        
-        @* console.log('User Department:', window.userDepartment);
-        console.log('User Display Name:', window.userDisplayName);
-        console.log('User Role:', window.userRole); *@
 
         // 设置全局变量
         const relativePath = '@(ViewBag.RelativePath ?? "")';
-        @* console.log('Calling initializeFileManager with path:', relativePath); *@
-        
+
         if (typeof initializeFileManager === 'function') {
             initializeFileManager(relativePath, '@Url.Action("Upload", "Home")');
         } else {
@@ -361,33 +379,89 @@
         }
 
         // ========== 根据权限显示/隐藏按钮 ==========
-        checkAndUpdateButtonsVisibility();
+        setTimeout(() => {
+            checkAndUpdateButtonsVisibility();
+        }, 100);
 
-        // 设置登出按钮事件 - 清除localStorage
+        // 设置登出按钮事件 - 使用内联onclick而不是addEventListener
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                if (confirm("Are you sure you want to logout?")) {
-                    // Clear localStorage
-                    localStorage.removeItem('spaceHSG_user');
-                    @* console.log('localStorage cleared on logout'); *@
-                    window.location.href = '@Url.Action("Logout", "Account")';
-                }
-            });
+            // 直接设置onclick属性来避免作用域问题
+            logoutBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showLogoutModal();
+            };
         }
 
         // 检查是否有错误
         @if (ViewBag.Error != null)
         {
-                    <text>
-                        setTimeout(() => {
-                            showToast('Error', '@Html.Raw(ViewBag.Error)', 'error');
-                        }, 1000);
-                    </text>
+                <text>
+                    setTimeout(() => {
+                        showToast('Error', '@Html.Raw(ViewBag.Error)', 'error');
+                    }, 1000);
+                </text>
         }
 
-        @* console.log('File Manager initialized successfully'); *@
+        // 为列表视图头部的全选复选框绑定事件
+        const listSelectAllContainer = document.getElementById('listSelectAllContainer');
+        if (listSelectAllContainer) {
+            listSelectAllContainer.onclick = function(e) {
+                e.stopPropagation();
+                toggleSelectAll();
+            };
+        }
+
+        // 重新绑定网格视图事件
+        setTimeout(() => {
+            reattachGridEvents();
+        }, 200);
     });
+
+    // ========== 全局登出函数 ==========
+    window.showLogoutModal = function() {
+        const modal = document.createElement('div');
+        modal.className = 'fm-modal-overlay active';
+        modal.id = 'logoutModal';
+
+        modal.innerHTML = `
+            <div class="fm-modal-box">
+                <div class="fm-modal-icon-header warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                </div>
+                <div class="fm-modal-content">
+                    <h3>Confirm Logout</h3>
+                    <p>Are you sure you want to logout?</p>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-top: 12px;">You will need to login again to access your files.</p>
+                </div>
+                <div class="fm-modal-actions">
+                    <button class="fm-btn-text" onclick="hideLogoutModal()">Cancel</button>
+                    <button class="fm-btn-danger" onclick="confirmLogout()">Logout</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+    };
+
+    window.hideLogoutModal = function() {
+        const modal = document.getElementById('logoutModal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
+    };
+
+    window.confirmLogout = function() {
+        // Clear localStorage
+        localStorage.removeItem('spaceHSG_user');
+        window.location.href = '@Url.Action("Logout", "Account")';
+    };
 
     // 全局辅助函数
     function showToast(title, message, type = 'info') {
@@ -436,7 +510,5 @@
             input.value = '';
             input.focus();
         }
-
-        @* console.log('Creating folder in path:', currentPath || 'root'); *@
     };
 </script>

@@ -128,36 +128,50 @@ function hasWritePermission() {
  */
 function checkAndUpdateButtonsVisibility() {
     const hasPermission = hasWritePermission();
-    
+
     console.log('=== Updating Button Visibility ===');
     console.log('Has Write Permission:', hasPermission);
-    
+
     // 获取所有需要权限的元素
     const uploadBtn = document.getElementById('uploadBtn');
     const newFolderBtn = document.getElementById('newFolderBtn');
     const deleteButtons = document.querySelectorAll('.fm-delete-btn, .delete-btn');
     const batchActionsArea = document.getElementById('batchActions');
     const selectAllContainer = document.querySelector('.fm-select-all-container');
-    
-    // 获取所有list view中的checkbox
-    const allCheckboxContainers = document.querySelectorAll('.fm-list-checkbox-container.fm-write-permission-only');
-    
+
+    // 列表视图全选容器
+    const listSelectAllContainer = document.getElementById('listSelectAllContainer');
+
+    // 获取所有权限控制的容器（添加 .fm-write-permission-only 类）
+    const allPermissionContainers = document.querySelectorAll('.fm-write-permission-only');
+
     if (hasPermission) {
         // 有权限：显示所有按钮和checkbox
         if (uploadBtn) uploadBtn.style.display = '';
         if (newFolderBtn) newFolderBtn.style.display = '';
         if (selectAllContainer) selectAllContainer.style.display = '';
+        if (listSelectAllContainer) listSelectAllContainer.style.display = 'flex';
+        if (batchActionsArea) batchActionsArea.style.display = 'none'; // 初始隐藏，有选择时显示
+
+        allPermissionContainers.forEach(container => {
+            container.style.display = '';
+        });
+
         deleteButtons.forEach(btn => btn.style.display = '');
-        allCheckboxContainers.forEach(container => container.style.display = '');
         console.log('Buttons enabled (user has write permission)');
     } else {
         // 无权限：隐藏所有写操作按钮和checkbox
         if (uploadBtn) uploadBtn.style.display = 'none';
         if (newFolderBtn) newFolderBtn.style.display = 'none';
         if (selectAllContainer) selectAllContainer.style.display = 'none';
+        if (listSelectAllContainer) listSelectAllContainer.style.display = 'none';
         if (batchActionsArea) batchActionsArea.style.display = 'none';
+
+        allPermissionContainers.forEach(container => {
+            container.style.display = 'none';
+        });
+
         deleteButtons.forEach(btn => btn.style.display = 'none');
-        allCheckboxContainers.forEach(container => container.style.display = 'none');
         console.log('Buttons disabled (user has no write permission)');
     }
 }
@@ -728,24 +742,12 @@ function selectAllItems() {
     });
 
     // 选择所有网格视图项目
-    document.querySelectorAll('.fm-grid-item').forEach(item => {
-        // 为网格项目添加选中状态
-        item.classList.add('selected');
+    document.querySelectorAll('.fm-grid-item').forEach(gridItem => {
+        gridItem.classList.add('selected');
+        const checkbox = gridItem.querySelector('.fm-grid-checkbox');
+        if (checkbox) checkbox.classList.add('checked');
 
-        // 尝试从data-path属性或onclick属性获取路径
-        let itemPath = item.dataset?.path || '';
-        if (!itemPath) {
-            const onClickAttr = item.getAttribute('onclick');
-            if (onClickAttr) {
-                const matches = onClickAttr.match(/path=(.*?)(&|'|")/);
-                if (matches && matches[1]) {
-                    itemPath = decodeURIComponent(matches[1]);
-                    // 添加到数据集以便后续使用
-                    item.dataset.path = itemPath;
-                }
-            }
-        }
-
+        const itemPath = gridItem.dataset.path;
         if (itemPath) {
             selectedItems.add(itemPath);
         }
@@ -770,12 +772,80 @@ function batchDelete() {
         return;
     }
 
-    // 确认删除
-    const confirmed = confirm(`Are you sure you want to delete ${selectedItems.size} selected item(s)?\nThis action cannot be undone.`);
+    showBatchDeleteModal();
+}
 
-    if (!confirmed) return;
+// 显示批量删除确认模态框
+// Delete Modal Functions
+function showDeleteModal(name, path) {
+    deleteItemPath = path;
 
-    // 显示加载状态
+    const modal = document.createElement('div');
+    modal.className = 'fm-modal-overlay active';
+    modal.id = 'deleteModal';
+
+    modal.innerHTML = `
+        <div class="fm-modal-box">
+            <div class="fm-modal-icon-header danger">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+            </div>
+            <div class="fm-modal-content">
+                <h3>Confirm Delete</h3>
+                <p>Are you sure you want to delete "<strong>${name}</strong>"?</p>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 12px;">This action cannot be undone.</p>
+            </div>
+            <div class="fm-modal-actions">
+                <button class="fm-btn-text" onclick="hideDeleteModal()">Cancel</button>
+                <button class="fm-btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function hideDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+    deleteItemPath = '';
+}
+
+function showBatchDeleteModal() {
+    const modal = document.getElementById('batchDeleteModal');
+    const countElement = document.getElementById('batchDeleteCount');
+
+    if (countElement) {
+        countElement.textContent = selectedItems.size;
+    }
+
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.add('active');
+        }, 10);
+    }
+}
+
+// 隐藏批量删除确认模态框
+function hideBatchDeleteModal() {
+    const modal = document.getElementById('batchDeleteModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
+// 确认批量删除
+function confirmBatchDelete() {
     const batchDeleteBtn = document.getElementById('batchDeleteBtn');
     const originalContent = batchDeleteBtn.innerHTML;
     batchDeleteBtn.innerHTML = '<span class="fm-btn-icon">⏳</span> Deleting...';
@@ -799,14 +869,27 @@ function batchDelete() {
             const successCount = results.filter(r => r.success).length;
             const failedCount = results.filter(r => !r.success).length;
 
+            // 隐藏模态框
+            hideBatchDeleteModal();
+
             // 清除选择
             clearSelection();
 
-            // 立即刷新页面以反映删除操作
-            window.location.reload();
+            if (successCount > 0) {
+                showToast('Success', `Successfully deleted ${successCount} item(s)`, 'success');
+                // 延迟刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+
+            if (failedCount > 0) {
+                showToast('Partial Error', `Failed to delete ${failedCount} item(s)`, 'error');
+            }
         })
         .catch(error => {
             console.error('Batch delete error:', error);
+            hideBatchDeleteModal();
             showToast('Error', 'Failed to delete items', 'error');
         })
         .finally(() => {
@@ -828,8 +911,8 @@ function clearSelection() {
     });
 
     // 移除所有选中的样式（网格视图）
-    document.querySelectorAll('.fm-grid-item.selected').forEach(item => {
-        item.classList.remove('selected');
+    document.querySelectorAll('.fm-grid-item.selected').forEach(griditem => {
+        griditem.classList.remove('selected');
     });
 
     document.querySelectorAll('.fm-list-checkbox.checked').forEach(checkbox => {
@@ -929,6 +1012,14 @@ function reattachEventListeners() {
         };
     });
 
+    const listSelectAllContainer = document.getElementById('listSelectAllContainer');
+    if (listSelectAllContainer) {
+        listSelectAllContainer.onclick = function (e) {
+            e.stopPropagation();
+            toggleSelectAll();
+        };
+    }
+
     // 为全选复选框绑定事件
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     if (selectAllCheckbox) {
@@ -956,6 +1047,8 @@ function reattachEventListeners() {
         };
     }
 }
+
+reattachGridEvents();
 
 // ============== 其他辅助函数 ==============
 // 保持兼容性的旧函数
@@ -1131,6 +1224,65 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('File Manager Initialized Successfully');
 });
 
+function toggleGridItemSelection(gridItem, checkbox) {
+    const itemPath = gridItem.dataset.path;
+    const itemName = gridItem.dataset.name;
+    const itemType = gridItem.dataset.type;
+
+    if (gridItem.classList.contains('selected')) {
+        // 取消选择
+        gridItem.classList.remove('selected');
+        if (checkbox) checkbox.classList.remove('checked');
+        selectedItems.delete(itemPath);
+    } else {
+        // 选择
+        gridItem.classList.add('selected');
+        if (checkbox) checkbox.classList.add('checked');
+        selectedItems.add(itemPath);
+    }
+
+    // 更新批量操作按钮状态
+    updateBatchActions();
+}
+
+function reattachGridEvents() {
+    // 为网格视图的checkbox容器绑定事件
+    document.querySelectorAll('.fm-grid-checkbox-container').forEach(container => {
+        container.onclick = function (e) {
+            e.stopPropagation();
+            const gridItem = this.closest('.fm-grid-item');
+            const checkbox = this.querySelector('.fm-grid-checkbox');
+            toggleGridItemSelection(gridItem, checkbox);
+        };
+    });
+
+    // 为网格项目的其他部分绑定点击事件（整行点击）
+    document.querySelectorAll('.fm-grid-item').forEach(gridItem => {
+        // 保存原始的onclick处理
+        const originalOnClick = gridItem.onclick;
+
+        // 覆盖onclick事件
+        gridItem.onclick = function (e) {
+            // 如果点击的是checkbox容器，不要处理（因为已经有单独的事件）
+            if (e.target.closest('.fm-grid-checkbox-container')) {
+                return;
+            }
+
+            // 如果有checkbox，触发选中/取消选中
+            const checkboxContainer = gridItem.querySelector('.fm-grid-checkbox-container');
+            if (checkboxContainer) {
+                const checkbox = checkboxContainer.querySelector('.fm-grid-checkbox');
+                toggleGridItemSelection(gridItem, checkbox);
+            }
+
+            // 执行原始的处理（导航）
+            if (originalOnClick) {
+                originalOnClick.call(this, e);
+            }
+        };
+    });
+}
+
 // ============== 全局导出 ==============
 // 将所有必要的函数导出到全局作用域
 window.refreshFileList = refreshFileListAPI;
@@ -1143,6 +1295,12 @@ window.hideCreateFolderModal = hideCreateFolderModal;
 window.showDeleteModal = showDeleteModal;
 window.hideDeleteModal = hideDeleteModal;
 window.batchDelete = batchDelete;
+window.showBatchDeleteModal = showBatchDeleteModal;
+window.hideBatchDeleteModal = hideBatchDeleteModal;
+window.confirmBatchDelete = confirmBatchDelete;
+window.showLogoutModal = showLogoutModal;
+window.hideLogoutModal = hideLogoutModal;
+window.confirmLogout = confirmLogout;
 window.clearSelection = clearSelection;
 window.switchView = switchView;
 window.navigateToItem = navigateToItem;
