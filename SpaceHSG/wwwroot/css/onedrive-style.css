@@ -152,15 +152,14 @@ body {
     }
 
 .fm-btn-primary {
-    background: var(--primary-blue);
-    color: white;
-    border-color: var(--primary-blue);
+    background: var(--bg-gray);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
 }
 
     .fm-btn-primary:hover {
-        background: var(--primary-blue-hover);
-        border-color: var(--primary-blue-hover);
-        color: white;
+        background: var(--bg-hover);
+        border-color: var(--text-secondary);
     }
 
 .fm-btn-icon {
@@ -356,7 +355,7 @@ body {
 
 .fm-list-header {
     display: grid;
-    grid-template-columns: 50px 50px 1fr 120px 100px 160px 160px;
+    grid-template-columns: 50px 150px 1fr 120px 100px 160px 160px;
     gap: 12px;
     padding: 12px 20px;
     background: var(--bg-gray);
@@ -368,7 +367,7 @@ body {
 
 .fm-list-item {
     display: grid;
-    grid-template-columns: 50px 50px 1fr 120px 100px 160px 160px;
+    grid-template-columns: 50px 150px 1fr 120px 100px 160px 160px;
     gap: 12px;
     padding: 12px 20px;
     align-items: center;
@@ -794,23 +793,39 @@ body {
     }
 }
 
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 /* Modal Dialog */
 .fm-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 10001;
     backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
 }
 
     .fm-modal-overlay.active {
-        display: flex;
+        opacity: 1;
+        visibility: visible;
     }
 
 .fm-modal {
@@ -1401,3 +1416,265 @@ a {
     color: var(--success-color);
     font-size: 14px;
 }
+
+onedrive-tyle。css
+/* ============== 网格视图选择样式 ============== */
+.fm-grid-item {
+    position: relative;
+}
+
+/* 网格视图的复选框容器 */
+.fm-grid-checkbox-container {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fm-grid-item:hover .fm-grid-checkbox-container,
+.fm-grid-item.selected .fm-grid-checkbox-container {
+    opacity: 1;
+}
+
+/* 网格视图复选框 */
+.fm-grid-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg);
+    transition: all 0.2s ease;
+}
+
+[data-bs-theme="dark"] .fm-grid-checkbox {
+    background: var(--card-bg);
+}
+
+.fm-grid-checkbox:hover {
+    border-color: var(--primary-blue);
+}
+
+.fm-grid-checkbox.checked {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+    .fm-grid-checkbox.checked::after {
+        content: '✓';
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+/* 选中状态下的网格项 */
+.fm-grid-item.selected {
+    background: var(--selected-bg);
+    border-color: var(--primary-blue);
+}
+
+/* ============== 根目录特殊样式 ============== */
+.fm-files-container.root-directory .fm-delete-btn,
+.fm-files-container.root-directory .fm-grid-checkbox-container,
+.fm-files-container.root-directory .fm-list-checkbox-container {
+    display: none !important;
+}
+
+.fm-files-container.root-directory .fm-select-all-container,
+.fm-files-container.root-directory .fm-batch-actions {
+    display: none !important;
+}
+
+/* 根目录下的按钮禁用状态 */
+.fm-files-container.root-directory .fm-btn[onclick*="createFolder"],
+.fm-files-container.root-directory .fm-btn[onclick*="fileInput"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ================== Modern Modal Styles ================== */
+
+/* 遮罩背景 */
+.fm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4); /* 半透明黑 */
+    backdrop-filter: blur(4px); /* 背景模糊 - 高级感关键 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+    .fm-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+/* 弹窗主体卡片 */
+.fm-modal-box {
+    background: var(--card-bg, #fff);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.3);
+    padding: 24px;
+    text-align: center;
+    transform: scale(0.9) translateY(20px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fm-modal-overlay.active .fm-modal-box {
+    transform: scale(1) translateY(0);
+}
+
+/* 顶部圆形图标区域 */
+.fm-modal-icon-header {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .fm-modal-icon-header svg {
+        width: 30px;
+        height: 30px;
+    }
+
+    .fm-modal-icon-header.warning {
+        background: #fff4ce;
+        color: #9a6e03;
+    }
+
+    .fm-modal-icon-header.danger {
+        background: #fde7e9;
+        color: #d13438;
+    }
+
+/* 内容文字 */
+.fm-modal-content h3 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fm-modal-content p {
+    margin: 0 0 20px;
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.fm-modal-content strong {
+    color: var(--error-color);
+    font-weight: 600;
+}
+
+/* 按钮组 */
+.fm-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+    .fm-modal-actions button {
+        flex: 1;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        font-size: 14px;
+    }
+
+.fm-btn-text {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color) !important;
+}
+
+    .fm-btn-text:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+.fm-btn-danger {
+    background: #d13438;
+    color: white;
+}
+
+    .fm-btn-danger:hover {
+        background: #a4262c;
+    }
+
+/* 危险按钮 - 红色 */
+.fm-btn-danger {
+    background: #d13438; /* Microsoft Red */
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(209, 52, 56, 0.3);
+}
+
+    .fm-btn-danger:hover {
+        background: #a4262c;
+        transform: translateY(-1px);
+    }
+
+/* 确保批量删除模态框正确显示 */
+#batchDeleteModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2001;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+    #batchDeleteModal.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    #batchDeleteModal .fm-modal-box {
+        background: var(--card-bg, #fff);
+        width: 90%;
+        max-width: 400px;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.3);
+        padding: 24px;
+        text-align: center;
+        transform: scale(0.9) translateY(20px);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #batchDeleteModal.active .fm-modal-box {
+        transform: scale(1) translateY(0);
+    }
