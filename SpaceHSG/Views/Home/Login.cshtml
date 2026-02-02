@@ -30,11 +30,16 @@
                        required readonly onfocus="this.removeAttribute('readonly')" />
             </div>
 
+            <!-- ?????div??????????? -->
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="password" name="password"
-                       placeholder="Enter domain password"
-                       required readonly onfocus="this.removeAttribute('readonly')" />
+                <div class="password-field">
+                    <input type="password" id="password" name="password"
+                           class="password-input"
+                           placeholder="Enter domain password"
+                           required readonly onfocus="this.removeAttribute('readonly')" />
+                    <!-- ??????????????????? -->
+                </div>
             </div>
 
             <button type="button" id="loginBtn" class="login-btn">
@@ -46,16 +51,14 @@
 
 <script src="~/js/Login/index.js" asp-append-version="true"></script>
 
-
-<!-- ??? Enter ????? -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ????????
+        // ????
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
         const loginButton = document.getElementById('loginBtn');
 
-        // ??????? Enter ??????
+        // ??????? Enter ???
         if (usernameInput) {
             usernameInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -68,7 +71,7 @@
             });
         }
 
-        // ?????? Enter ????
+        // ?????? Enter ???
         if (passwordInput) {
             passwordInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
