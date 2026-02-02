@@ -113,7 +113,6 @@ body {
 .fm-title-icon {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--primary-blue) 0%, #50e6ff 100%);
     border-radius: 8px;
     display: flex;
     align-items: center;

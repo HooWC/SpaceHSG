@@ -476,3 +476,29 @@ input:checked + .slider {
             background: #3d3d3d;
         }
 }
+
+/* ================== 自定义浏览器原生密码图标颜色 ================== */
+/* 简单直接的解决方案 */
+[data-bs-theme="light"] input[type="password"]::-webkit-credentials-auto-fill-button,
+[data-bs-theme="light"] input[type="password"]::-webkit-reveal-password {
+    filter: invert(0.5); /* 灰色 */
+}
+
+[data-bs-theme="dark"] input[type="password"]::-webkit-credentials-auto-fill-button,
+[data-bs-theme="dark"] input[type="password"]::-webkit-reveal-password {
+    filter: invert(1); /* 白色 */
+}
+
+/* Firefox */
+[data-bs-theme="light"] input[type="password"]::-ms-reveal {
+    filter: invert(0.5); /* 灰色 */
+}
+
+[data-bs-theme="dark"] input[type="password"]::-ms-reveal {
+    filter: invert(1); /* 白色 */
+}
+
+/* 给浏览器图标留出空间 */
+.form-group input[type="password"] {
+    padding-right: 40px !important;
+}
