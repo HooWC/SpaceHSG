@@ -8,7 +8,8 @@
 <!-- Drop Overlay -->
 <div class="fm-drop-overlay" id="dropOverlay">
     <div class="fm-drop-content">
-        <div class="fm-drop-icon">📁</div>
+        @* <div class="fm-drop-icon">📁</div> *@
+        <div class="fm-drop-icon"><i class="fas fa-folder-open"></i></div>
         <div class="fm-drop-text">Drop files or folders here</div>
         <div class="fm-drop-hint">Release to upload your files and folders with structure preserved</div>
     </div>
@@ -22,35 +23,47 @@
                 <div class="fm-title-icon">☁️</div>
                 SpaceHSG
             </h1>
+
+            @* <h1 class="fm-title">
+                <div class="fm-title-icon"><i class="fas fa-cloud"></i></div>
+                SpaceHSG
+            </h1> *@ 
         </a>
         <div class="fm-toolbar">
             <button id="uploadBtn" class="fm-btn fm-btn-primary" onclick="document.getElementById('fileInput').click()">
-                <span class="fm-btn-icon">⬆️</span>
+                @* <span class="fm-btn-icon">⬆️</span> *@
+                <span class="fm-btn-icon"><i class="fas fa-upload"></i></span>
                 Upload
             </button>
             <button id="newFolderBtn" class="fm-btn" onclick="showCreateFolderModal()">
-                <span class="fm-btn-icon">➕</span>
+                @* <span class="fm-btn-icon">➕</span> *@
+                <span class="fm-btn-icon"><i class="fas fa-folder-plus"></i></span>
                 New Folder
             </button>
             <button class="fm-btn" onclick="refreshFileListWithoutReload()" title="Refresh without reloading page">
-                <span class="fm-btn-icon">🔄</span>
+                @* <span class="fm-btn-icon">🔄</span> *@
+                <span class="fm-btn-icon"><i class="fas fa-rotate-right"></i></span>
                 Refresh
             </button>
             <button class="fm-theme-toggle" id="themeToggle" onclick="toggleThemeNow()">
-                <span id="themeIcon">🌙</span>
+                @* <span id="themeIcon">🌙</span> *@
+                <span id="themeIcon"><i class="fas fa-moon"></i></span>
             </button>
             <div class="fm-view-toggle">
                 <button class="fm-view-btn active" id="viewGrid" onclick="switchView('grid')">
-                    <span>⊞</span>
+                    @* <span>⊞</span> *@
+                    <span><i class="fas fa-th-large"></i></span>
                 </button>
                 <button class="fm-view-btn" id="viewList" onclick="switchView('list')">
-                    <span>☰</span>
+                    @* <span>☰</span> *@
+                    <span><i class="fas fa-list"></i></span>
                 </button>
             </div>
 
-            <button id="logoutBtn" class="fm-btn fm-btn-logout">
-                Logout ⏻
-            </button>
+             <button id="logoutBtn" class="fm-btn fm-btn-logout">
+                Logout<i class="fas fa-right-from-bracket"></i>
+            </button> 
+ 
         </div>
     </div>
 
@@ -193,7 +206,8 @@
                     <span id="selectedNumber">0</span> selected
                 </div>
                 <button class="fm-btn fm-btn-danger" id="batchDeleteBtn" title="Delete selected items">
-                    <span class="fm-btn-icon">🗑️</span>
+                    @*<span class="fm-btn-icon">🗑️</span>*@
+                    <span class="fm-btn-icon"><i class="fas fa-trash"></i></span>
                     Delete Selected
                 </button>
             </div>
@@ -216,11 +230,12 @@
                         <div class="fm-grid-item-icon fm-icon-@(item.Type == "Folder" ? "folder" : ((string)item.Extension).TrimStart('.'))" >
                             @if (item.Type == "Folder")
                             {
-                                <text>📁</text>
+                                // <text>📁</text>
+                                <text><i class="fas fa-folder"></i></text>
                             }
                             else
                             {
-                                @GetFileIcon(item.Extension)
+                                @Html.Raw(GetFileIcon(item.Extension))
                             }
                         </div>
                         <div class="fm-grid-item-name" title="@item.Name">@item.Name</div>
@@ -261,11 +276,12 @@
                              onclick="navigateToItemByElement(this)">
                             @if (item.Type == "Folder")
                             {
-                                <text>📁</text>
+                                // <text>📁</text>
+                                <text><i class="fas fa-folder"></i></text>
                             }
                             else
                             {
-                                @GetFileIcon(item.Extension)
+                                @Html.Raw(GetFileIcon(item.Extension))
                             }
                         </div>
                         <div class="fm-list-name" title="@item.Name" onclick="navigateToItemByElement(this)">@item.Name</div>
@@ -300,7 +316,8 @@
                             else
                             {
                                 <button class="fm-action-btn open-icon-btn" title="Open">
-                                    <span class="fm-action-icon">📂</span>
+                                    @*<span class="fm-action-icon">📂</span>*@
+                                    <span class="fm-action-icon"><i class="fas fa-folder-open"></i></span>
                                 </button>
                             }
                         </div>
@@ -311,7 +328,8 @@
         else
         {
             <div class="fm-empty">
-                <div class="fm-empty-icon">📂</div>
+                @*<div class="fm-empty-icon">📂</div>*@
+                <div class="fm-empty-icon"><i class="fas fa-folder-open"></i></div>
                 <div class="fm-empty-text">This folder is empty</div>
                 <div class="fm-empty-hint">Drag files here or click Upload to add files</div>
             </div>
@@ -320,29 +338,55 @@
 </div>
 
 @functions {
+    // string GetFileIcon(string extension)
+    // {
+    //     return extension?.ToLower() switch
+    //     {
+    //         ".doc" or ".docx" => "📄",
+    //         ".xls" or ".xlsx" => "📊",
+    //         ".ppt" or ".pptx" => "📽️",
+    //         ".pdf" => "📕",
+    //         ".txt" => "📝",
+    //         ".zip" or ".rar" or ".7z" => "📦",
+    //         ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" => "🖼️",
+    //         ".mp4" or ".avi" or ".mov" or ".wmv" => "🎬",
+    //         ".mp3" or ".wav" or ".flac" => "🎵",
+    //         ".exe" => "⚙️",
+    //         ".html" or ".htm" => "🌐",
+    //         ".css" => "🎨",
+    //         ".js" => "📜",
+    //         ".json" => "📋",
+    //         ".xml" => "📋",
+    //         ".cs" => "💻",
+    //         ".py" => "🐍",
+    //         ".java" => "☕",
+    //         _ => "📄"
+    //     };
+    // }
+
     string GetFileIcon(string extension)
     {
         return extension?.ToLower() switch
         {
-            ".doc" or ".docx" => "📄",
-            ".xls" or ".xlsx" => "📊",
-            ".ppt" or ".pptx" => "📽️",
-            ".pdf" => "📕",
-            ".txt" => "📝",
-            ".zip" or ".rar" or ".7z" => "📦",
-            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" => "🖼️",
-            ".mp4" or ".avi" or ".mov" or ".wmv" => "🎬",
-            ".mp3" or ".wav" or ".flac" => "🎵",
-            ".exe" => "⚙️",
-            ".html" or ".htm" => "🌐",
-            ".css" => "🎨",
-            ".js" => "📜",
-            ".json" => "📋",
-            ".xml" => "📋",
-            ".cs" => "💻",
-            ".py" => "🐍",
-            ".java" => "☕",
-            _ => "📄"
+            ".doc" or ".docx" => "<i class='fas fa-file-word'></i>",
+            ".xls" or ".xlsx" => "<i class='fas fa-file-excel'></i>",
+            ".ppt" or ".pptx" => "<i class='fas fa-file-powerpoint'></i>",
+            ".pdf" => "<i class='fas fa-file-pdf'></i>",
+            ".txt" => "<i class='fas fa-file-alt'></i>",
+            ".zip" or ".rar" or ".7z" => "<i class='fas fa-file-archive'></i>",
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" => "<i class='fas fa-file-image'></i>",
+            ".mp4" or ".avi" or ".mov" or ".wmv" => "<i class='fas fa-file-video'></i>",
+            ".mp3" or ".wav" or ".flac" => "<i class='fas fa-file-audio'></i>",
+            ".exe" => "<i class='fas fa-cog'></i>",
+            ".html" or ".htm" => "<i class='fab fa-html5'></i>",
+            ".css" => "<i class='fab fa-css3-alt'></i>",
+            ".js" => "<i class='fab fa-js'></i>",
+            ".json" => "<i class='fas fa-code'></i>",
+            ".xml" => "<i class='fas fa-code'></i>",
+            ".cs" => "<i class='fas fa-code'></i>",
+            ".py" => "<i class='fab fa-python'></i>",
+            ".java" => "<i class='fab fa-java'></i>",
+            _ => "<i class='fas fa-file'></i>"
         };
     }
 

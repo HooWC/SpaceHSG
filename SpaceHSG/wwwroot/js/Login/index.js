@@ -58,43 +58,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: `username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
+                const result = await response.json();
 
-                    if (result.success) {
-                        // ========== Save user information to localStorage ==========
-                        const userInfo = {
-                            username: result.username || user,
-                            displayName: result.displayName || user,
-                            department: result.department || 'Unknown',
-                            role: result.role || 'User',
-                            loginTime: new Date().toISOString()
-                        };
-                        
-                        localStorage.setItem('spaceHSG_user', JSON.stringify(userInfo));
-                        console.log('User info saved to localStorage:', userInfo);
-                        
-                        if (typeof showToast === 'function') {
-                            showToast('Success', `Welcome, ${userInfo.displayName}! (${userInfo.department})`, 'success');
-                            setTimeout(() => {
-                                window.location.href = homeUrl;
-                            }, 1000);
-                        } else {
-                            window.location.href = homeUrl;
-                        }
-                    } else {
-                        if (typeof showToast === 'function') {
-                            showToast('Login Failed', result.message || 'Invalid credentials', 'error');
-                        } else {
-                            alert(result.message || 'Invalid credentials');
-                        }
-                    }
-                } else {
-                    console.error('HTTP Error:', response.status);
+                // ========== FIRST: 先检查是否失败 ==========
+                if (!result.success) {
+                    // 立即显示错误，不执行任何其他代码
                     if (typeof showToast === 'function') {
-                        showToast('Server Error', `Server returned error: ${response.status}`, 'error');
+                        showToast('Login Failed', result.message || 'Invalid credentials', 'error');
+                    } else {
+                        alert(result.message || 'Invalid credentials');
                     }
+                    return; // 立即返回，不执行下面的成功逻辑
                 }
+
+                // ========== SECOND: 只有成功时才执行以下代码 ==========
+                const userInfo = {
+                    username: result.username || user,
+                    displayName: result.displayName || user,
+                    department: result.department || 'Unknown',
+                    role: result.role || 'User',
+                    loginTime: new Date().toISOString()
+                };
+                
+                localStorage.setItem('spaceHSG_user', JSON.stringify(userInfo));
+                console.log('User info saved to localStorage:', userInfo);
+                
+                if (typeof showToast === 'function') {
+                    showToast('Success', `Welcome, ${userInfo.displayName}! (${userInfo.department})`, 'success');
+                    setTimeout(() => {
+                        window.location.href = homeUrl;
+                    }, 1000);
+                } else {
+                    window.location.href = homeUrl;
+                }
+
             } catch (err) {
                 console.error('AJAX Failed Request:', err);
                 if (typeof showToast === 'function') {
