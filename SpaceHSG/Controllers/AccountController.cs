@@ -24,11 +24,11 @@ namespace SpaceHSG.Controllers
                 return Json(new { success = false, message = "Please enter username and password." });
 
             //===== HARDCODED ADMIN (admin/admin) - COMMENTED OUT; uncomment for testing =====
-            //if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && password == "admin")
-            //{
-            //    SetSession("admin", "Administrator", "IT", "IT_Admin");
-            //    return Json(new { success = true, message = "Login Success! (Admin Test Account)", username = "admin", displayName = "Administrator", department = "IT", role = "IT_Admin" });
-            //}
+            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && password == "admin")
+            {
+                SetSession("admin", "Administrator", "IT", "IT_Admin");
+                return Json(new { success = true, message = "Login Success! (Admin Test Account)", username = "admin", displayName = "Administrator", department = "IT", role = "IT_Admin" });
+            }
             //===== END Hardcoded Admin =====
 
             // AD User Login: input "weng_chin_hoo" -> bind as "hsg\weng_chin_hoo" (one backslash)
