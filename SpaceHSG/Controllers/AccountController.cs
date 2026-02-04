@@ -1,5 +1,4 @@
 using System;
-using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,182 +23,125 @@ namespace SpaceHSG.Controllers
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
                 return Json(new { success = false, message = "Please enter username and password." });
 
-            //===== 1. Hardcoded Admin (admin/admin) - IT department, can New Folder/Delete in IT ===== REMOVE IN PRODUCTION =====
-            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && password == "admin")
-            {
-                SetSession("admin", "Administrator", "IT", "IT_Admin");
-
-                return Json(new
-                {
-                    success = true,
-                    message = "Login Success! (Admin Test Account)",
-                    username = "admin",
-                    displayName = "Administrator",
-                    department = "IT",
-                    role = "IT_Admin"
-                });
-            }
+            //===== HARDCODED ADMIN (admin/admin) - COMMENTED OUT; uncomment for testing =====
+            //if (username.Equals("admin", StringComparison.OrdinalIgnoreCase) && password == "admin")
+            //{
+            //    SetSession("admin", "Administrator", "IT", "IT_Admin");
+            //    return Json(new { success = true, message = "Login Success! (Admin Test Account)", username = "admin", displayName = "Administrator", department = "IT", role = "IT_Admin" });
+            //}
             //===== END Hardcoded Admin =====
 
-            // 2. AD User Login
-            // username / hsg\\username / username@hsg.local
+            // AD User Login: input "weng_chin_hoo" -> bind as "hsg\weng_chin_hoo" (one backslash)
             string inputUser = username.Trim();
             string netbiosDomain = "hsg";
+            string dnsDomain = "hsg.local";
             string samAccountName = inputUser;
             string bindUserName = inputUser;
 
             if (inputUser.Contains("@"))
             {
-                // user@hsg.local
                 samAccountName = inputUser.Split('@')[0];
                 bindUserName = inputUser;
             }
             else if (inputUser.Contains("\\"))
             {
-                // hsg\\user
                 var parts = inputUser.Split('\\');
-                if (parts.Length == 2)
-                {
-                    samAccountName = parts[1];
-                }
+                if (parts.Length == 2) samAccountName = parts[1];
                 bindUserName = inputUser;
             }
             else
             {
                 samAccountName = inputUser;
-                bindUserName = $"{netbiosDomain}\\{inputUser}";
+                bindUserName = netbiosDomain + "\\" + inputUser;  // "hsg\weng_chin_hoo" (one \)
             }
 
-            // Using DirectoryEntry Checking
-            string domainPath = "LDAP://hsg.local";
+            // Try multiple AD bind formats; some domains need NetBIOS name, some need UPN
+            string[] domainNames = { dnsDomain, netbiosDomain };           // "hsg.local", "hsg"
+            string[] bindNames = { bindUserName, samAccountName + "@" + dnsDomain };  // "hsg\user", "user@hsg.local"
 
-            try
+            Exception lastEx = null;
+            foreach (string domainName in domainNames)
             {
-                using (DirectoryEntry entry = new DirectoryEntry(domainPath, bindUserName, password))
+                foreach (string bindName in bindNames)
                 {
-                    object nativeObject = entry.NativeObject;
-
-                    using (DirectorySearcher searcher = new DirectorySearcher(entry))
+                    try
                     {
-                        searcher.Filter = $"(sAMAccountName={samAccountName})";
-                        searcher.PropertiesToLoad.Add("displayName");
-                        searcher.PropertiesToLoad.Add("distinguishedName");
-
-                        SearchResult result = searcher.FindOne();
-                        if (result == null)
+                        using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, domainName, bindName, password))
+                        {
+                            UserPrincipal user = UserPrincipal.FindByIdentity(pc, samAccountName);
+                            if (user != null)
+                            {
+                                string displayName = user.DisplayName ?? samAccountName;
+                                string dn = user.DistinguishedName ?? string.Empty;
+                                string userDept = GetDeptFromDN(dn);
+                                string role = userDept == "IT" ? "IT_Admin" : "User";
+                                SetSession(user.SamAccountName, displayName, userDept, role);
+                                return Json(new
+                                {
+                                    success = true,
+                                    message = "Login Success!",
+                                    username = user.SamAccountName,
+                                    displayName,
+                                    department = userDept,
+                                    role
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lastEx = ex;
+                        // 532 = password expired -> allow login by loading user (no credentials)
+                        string msg = (ex.Message ?? "").ToLowerInvariant();
+                        string innerMsg = ex.InnerException?.Message?.ToLowerInvariant() ?? "";
+                        if (msg.Contains("532") || innerMsg.Contains("532") || msg.Contains("password expired") || innerMsg.Contains("password expired"))
+                        {
+                            try
+                            {
+                                using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, domainName))
+                                {
+                                    UserPrincipal user = UserPrincipal.FindByIdentity(pc, samAccountName);
+                                    if (user != null)
+                                    {
+                                        string displayName = user.DisplayName ?? samAccountName;
+                                        string dn = user.DistinguishedName ?? string.Empty;
+                                        string userDept = GetDeptFromDN(dn);
+                                        string role = userDept == "IT" ? "IT_Admin" : "User";
+                                        SetSession(user.SamAccountName, displayName, userDept, role);
+                                        return Json(new
+                                        {
+                                            success = true,
+                                            message = "Login Success!",
+                                            username = user.SamAccountName,
+                                            displayName,
+                                            department = userDept,
+                                            role
+                                        });
+                                    }
+                                }
+                            }
+                            catch { /* ignore */ }
+                        }
+                        // 773 = must change password
+                        if (msg.Contains("773") || innerMsg.Contains("773") || msg.Contains("must change") || innerMsg.Contains("must change"))
                         {
                             return Json(new
                             {
                                 success = false,
-                                message = "Login Failed: AD user not found."
-                            });
-                        }
-
-                        string displayName = (result.Properties["displayName"].Count > 0
-                            ? result.Properties["displayName"][0]?.ToString()
-                            : samAccountName) ?? samAccountName;
-                        string dn = result.Properties["distinguishedName"].Count > 0
-                            ? result.Properties["distinguishedName"][0]?.ToString()
-                            : string.Empty;
-
-                        string userDept = GetDeptFromDN(dn);
-                        string role = userDept == "IT" ? "IT_Admin" : "User";
-
-                        SetSession(samAccountName, displayName, userDept, role);
-
-                        return Json(new
-                        {
-                            success = true,
-                            message = "Login Success!",
-                            username = samAccountName,
-                            displayName,
-                            department = userDept,
-                            role
-                        });
-                    }
-                }
-            }
-            catch (DirectoryServicesCOMException comEx)
-            {
-                string extended = (comEx.ExtendedErrorMessage ?? string.Empty).ToLowerInvariant();
-
-                // data 773: user must change password at next logon（从未修改过默认密码）
-                if (extended.Contains("data 773"))
-                {
-                    return Json(new
-                    {
-                        success = false,
-                        message = "Login Failed: Your password has never been changed. Please change your default password on Windows/AD first, then login here.",
-                        detail = comEx.Message
-                    });
-                }
-
-                // data 532: password expired（曾经改过密码，但已过期） -> Can Login
-                if (extended.Contains("data 532"))
-                {
-                    try
-                    {
-                        using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, "hsg.local"))
-                        {
-                            UserPrincipal user = UserPrincipal.FindByIdentity(pc, samAccountName);
-                            if (user == null)
-                            {
-                                return Json(new
-                                {
-                                    success = false,
-                                    message = "Login Failed: AD user not found when handling expired password.",
-                                    detail = comEx.Message
-                                });
-                            }
-
-                            string displayName = user.DisplayName ?? samAccountName;
-                            string dn = user.DistinguishedName ?? string.Empty;
-
-                            string userDept = GetDeptFromDN(dn);
-                            string role = userDept == "IT" ? "IT_Admin" : "User";
-
-                            SetSession(user.SamAccountName, displayName, userDept, role);
-
-                            return Json(new
-                            {
-                                success = true,
-                                message = "Login Success! (password expired in AD, but accepted here as per policy)",
-                                username = user.SamAccountName,
-                                displayName,
-                                department = userDept,
-                                role
+                                message = "Login Failed: Your password has never been changed. Please change your default password on Windows/AD first, then login here.",
+                                detail = ex.Message
                             });
                         }
                     }
-                    catch (Exception readEx)
-                    {
-                        return Json(new
-                        {
-                            success = false,
-                            message = "Login Failed: could not read AD user info after password-expired response.",
-                            detail = readEx.Message
-                        });
-                    }
                 }
+            }
 
-                // 其他情况：密码错误 / 账号受限等 / Errors
-                return Json(new
-                {
-                    success = false,
-                    message = "Login Failed: The user name or password is incorrect or account not allowed to login.",
-                    detail = comEx.Message
-                });
-            }
-            catch (Exception ex)
+            return Json(new
             {
-                // ex.Message
-                return Json(new
-                {
-                    success = false,
-                    message = "Login Failed: unexpected error while contacting Active Directory.",
-                    detail = ex.Message
-                });
-            }
+                success = false,
+                message = "Login Failed: The user name or password is incorrect.",
+                detail = lastEx?.Message ?? "AD validation failed."
+            });
         }
 
         private void SetSession(string user, string display, string dept, string role)

@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const usernameSent = user.trim();
+            const passwordLength = pass ? pass.length : 0;
+            console.log('[Login] Sending request:', { username: usernameSent, passwordLength, loginUrl });
+            console.log('[Login] Body username value (encoded):', encodeURIComponent(usernameSent));
+
             try {
                 const response = await fetch(loginUrl, {
                     method: 'POST',
@@ -59,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const result = await response.json();
+                console.log('[Login] Response:', { success: result.success, message: result.message, detail: result.detail });
 
                 // ========== FIRST: 先检查是否失败 ==========
                 if (!result.success) {
