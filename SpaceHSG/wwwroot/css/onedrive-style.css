@@ -1061,6 +1061,10 @@ button, input, textarea,
     color: var(--text-primary);
 }
 
+.fa-trash{
+    color:white;
+}
+
 /* 确保链接颜色正确 */
 a {
     color: var(--primary-blue);
