@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - SpaceHSG</title>
-    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/onedrive-style.css" asp-append-version="true" />
+    <link rel="stylesheet" href="@Url.Content("~/css/login.css")" asp-append-version="true" />
+    <link rel="stylesheet" href="@Url.Content("~/css/onedrive-style.css")" asp-append-version="true" />
 </head>
 <body>
     <div class="fm-toast-container" id="toastContainer">
@@ -27,7 +27,7 @@
 
     @RenderBody()
 
-    <script src="~/js/toast.js" asp-append-version="true"></script>
+    <script src="@Url.Content("~/js/toast.js")" asp-append-version="true"></script>
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
