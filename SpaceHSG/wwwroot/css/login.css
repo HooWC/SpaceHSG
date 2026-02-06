@@ -93,6 +93,97 @@ body {
     overflow: visible;
 }
 
+@media screen and (max-width: 1024px) {
+    .login-card {
+        width: 360px;
+        padding: 36px 32px;
+    }
+}
+
+/* 手机版适配 */
+@media screen and (max-width: 768px) {
+    .login-page {
+        /* 允许页面内部滚动，防止内容被裁剪 */
+        overflow-y: auto;
+        padding: 20px;
+        align-items: flex-start;
+        padding-top: 60px;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 20px;
+        padding: 32px 28px;
+        box-shadow: 0 10px 30px var(--card-shadow);
+    }
+}
+
+/* 小屏幕手机适配 */
+@media screen and (max-width: 480px) {
+    .login-page {
+        padding: 16px;
+        /* 移除顶部padding，使用flex居中 */
+        padding-top: 0;
+        /* 确保使用完整的视口高度 */
+        height: 100vh;
+        /* 保持垂直居中 */
+        align-items: center;
+        justify-content: center;
+        /* 允许滚动以防内容超出 */
+        overflow-y: auto;
+    }
+
+    .login-card {
+        margin: 0 12px;
+        padding: 28px 24px;
+        border-radius: 10px;
+    }
+}
+
+/* 超小屏幕手机适配 */
+@media screen and (max-width: 360px) {
+    .login-card {
+        margin: 0 8px;
+        padding: 24px 20px;
+        border-radius: 8px;
+    }
+}
+
+/* 横屏模式适配 */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+    .login-page {
+        /* 移除顶部和底部的特殊padding */
+        padding-top: 0;
+        padding-bottom: 0;
+        /* 保持垂直居中 */
+        align-items: center;
+        justify-content: center;
+        /* 确保高度足够 */
+        min-height: 100vh;
+    }
+
+    .login-card {
+        /* 移除特殊的margin，使用默认居中 */
+        margin: 0 auto;
+        /* 确保卡片不会太大 */
+        max-height: 90vh;
+        /* 添加内部滚动以防内容过多 */
+        overflow-y: auto;
+    }
+}
+
+/* 额外优化：防止键盘弹出时影响布局 */
+@media screen and (max-width: 480px) and (max-height: 700px) {
+    .login-page {
+        /* 在小屏幕手机上，当高度有限时，使用flex-start但保持视觉居中效果 */
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 20px;
+        padding-bottom: 20px;
+    }
+}}
+
 /* ===== Toast 容器 ===== */
 .fm-toast-container {
     position: fixed;
