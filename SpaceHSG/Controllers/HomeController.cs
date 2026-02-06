@@ -10,7 +10,7 @@ namespace SpaceHSG.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string basePath = @"C:\sharedrive"; // Change File Path to server
+        private readonly string basePath = @"C:\Hoo_Note\sharehsg"; // Change File Path to server
         private const string RootPath = ""; // Root path identifier
         
         // Department List
@@ -83,7 +83,8 @@ namespace SpaceHSG.Controllers
                 ViewBag.Items = items;
                 ViewBag.BasePath = basePath;
                 ViewBag.CurrentPath = currentPath;
-                ViewBag.RelativePath = path;
+                // Use forward slashes for client so path is not mangled in JavaScript (e.g. IT\test -> \t becomes tab)
+                ViewBag.RelativePath = (path ?? "").Replace('\\', '/');
                 ViewBag.ParentPath = parentPath != basePath ?
                     GetRelativePath(parentPath, basePath) : RootPath;
                 ViewBag.Breadcrumbs = breadcrumbs;
@@ -1080,27 +1081,18 @@ namespace SpaceHSG.Controllers
             // 获取用户部门
             var userDepartment = HttpContext.Session.GetString("Department");
             
-            //Console.WriteLine($"========== Permission Check ==========");
-            //Console.WriteLine($"User Department: {userDepartment}");
-            //Console.WriteLine($"Relative Path: {relativePath}");
-            
             if (string.IsNullOrEmpty(userDepartment))
-            {
-                //Console.WriteLine("ERROR: User department is null or empty");
-                //Console.WriteLine($"=====================================");
                 return false;
-            }
 
+            // 规范化路径：统一为正斜杠并去除首尾空白
+            relativePath = (relativePath ?? "").Trim().Replace('\\', '/');
+            
             // 如果在根目录，不允许任何写操作
-            if (string.IsNullOrEmpty(relativePath) || relativePath == RootPath)
-            {
-                //Console.WriteLine("Result: DENIED (root directory)");
-                //Console.WriteLine($"=====================================");
+            if (string.IsNullOrEmpty(relativePath) || relativePath == RootPath || relativePath == "/")
                 return false;
-            }
 
             // 提取路径中的第一级文件夹（部门文件夹）
-            var pathParts = relativePath.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var pathParts = relativePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             if (pathParts.Length == 0)
             {
                 //Console.WriteLine("Result: DENIED (empty path)");
