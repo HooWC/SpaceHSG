@@ -130,20 +130,32 @@ body {
     margin-bottom: 16px;
 }
 
-.fm-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-gray);
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
+    .fm-toolbar .fm-toolbar-left {
+        display: flex;
+        justify-content:flex-start;
+    }
+
+        .fm-toolbar .fm-toolbar-left .fm-btn {
+            margin-left: 5px;
+        }
+
+    .fm-toolbar .fm-toolbar-right-logout {
+    }
+
+    .fm-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-gray);
+        color: var(--text-primary);
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
 
     .fm-btn:hover {
         background: var(--bg-hover);
