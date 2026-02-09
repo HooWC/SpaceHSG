@@ -847,8 +847,8 @@ body {
     border-radius: 8px;
     box-shadow: var(--shadow-md);
     padding: 0;
-    min-width: 400px;
-    max-width: 90%;
+    min-width: 350px;
+    max-width: 100%;
     animation: modalZoomIn 0.3s ease;
     color: var(--text-primary);
 }
@@ -2205,14 +2205,14 @@ a {
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
         gap: 12px;
         padding: 16px;
-        background: var(--card-bg);
+        /*background: var(--card-bg);*/
     }
 
     .fm-grid-item {
         padding: 16px 12px;
         border-radius: 10px;
         border: 1px solid var(--border-color);
-        background: var(--card-bg);
+        /*background: var(--card-bg);*/
         transition: all 0.3s ease;
         position: relative;
         text-align: center;
@@ -2820,5 +2820,14 @@ a {
             display: inline-block !important;
             font-size: 16px;
         }
+
+    /* Create New Folder 弹窗：手机模式左右留白 */
+    #createFolderModal .fm-modal {
+        margin-left: 16px;
+        margin-right: 16px;
+        max-width: calc(100% - 32px);
+        width: 100%;
+        box-sizing: border-box;
+    }
 
 }
