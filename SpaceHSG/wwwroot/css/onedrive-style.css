@@ -161,6 +161,21 @@ body {
         border-color: var(--text-secondary);
     }
 
+#createFolderModal .fm-btn-primary {
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-hover));
+    color: white;
+    border: 1px solid var(--border-color);
+}
+
+    #createFolderModal .fm-btn-primary:hover {
+        filter: brightness(1.18);
+        border-color: var(--text-secondary);
+    }
+
+    #createFolderModal .fm-btn-primary:active {
+        transform: scale(0.97);
+    }
+
 .fm-btn-icon {
     font-size: 16px;
 }
@@ -832,8 +847,8 @@ body {
     border-radius: 8px;
     box-shadow: var(--shadow-md);
     padding: 0;
-    min-width: 400px;
-    max-width: 90%;
+    min-width: 350px;
+    max-width: 100%;
     animation: modalZoomIn 0.3s ease;
     color: var(--text-primary);
 }
@@ -1061,8 +1076,8 @@ button, input, textarea,
     color: var(--text-primary);
 }
 
-.fa-trash{
-    color:white;
+.fa-trash {
+    color: white;
 }
 
 /* 确保链接颜色正确 */
@@ -1163,7 +1178,7 @@ a {
     font-size: 14px;
     color: var(--text-secondary);
     padding: 4px 8px;
-    background-color: var(--hover-bg);
+    /*    background-color: var(--hover-bg);*/
     border-radius: 4px;
 }
 
@@ -1420,7 +1435,6 @@ a {
     font-size: 14px;
 }
 
-onedrive-tyle。css
 /* ============== 网格视图选择样式 ============== */
 .fm-grid-item {
     position: relative;
@@ -1472,7 +1486,7 @@ onedrive-tyle。css
 }
 
     .fm-grid-checkbox.checked::after {
-        content: '';
+        content: '✓';
         position: absolute;
         left: 50%;
         top: 50%;
@@ -1686,3 +1700,1134 @@ onedrive-tyle。css
     #batchDeleteModal.active .fm-modal-box {
         transform: scale(1) translateY(0);
     }
+
+/* ================== 移动端响应式设计 - 更新设计 ================== */
+@media (max-width: 768px) {
+    /* 1. 基础容器 */
+    .file-manager-container {
+        padding: 12px;
+        max-width: 100%;
+        min-height: calc(100vh - 40px);
+        background: var(--card-bg);
+    }
+
+    /* 2. 标题区域 */
+    .fm-header {
+        padding: 0 0 8px 0;
+        margin-bottom: 8px;
+        border-bottom: none;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .fm-title {
+        font-size: 18px !important;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .fm-title-icon {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 14px !important;
+        border-radius: 6px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logo-text-a {
+        font-size: 16px !important;
+        text-decoration: none;
+        color: var(--text-primary);
+    }
+
+    /* 3. 工具栏按钮 - 让Logout按钮独立 */
+    .fm-toolbar {
+        display: flex;
+        justify-content: space-between; /* 左右分组 */
+        align-items: center;
+        gap: 0; /* 移除gap，使用margin控制间距 */
+        padding: 8px;
+        margin-bottom: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        background: var(--bg-gray);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        min-height: 44px;
+        width: 100%;
+        box-sizing: border-box;
+        position: relative; /* 用于分隔线定位 */
+    }
+
+    /* 左侧按钮组 - 图标按钮 */
+    .fm-toolbar-left {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 1px; /* 增加与Logout按钮的间距 */
+        position: relative;
+    }
+
+        /* 在左侧按钮组和Logout按钮之间添加分隔线 */
+        .fm-toolbar-left::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1px;
+            height: 24px;
+            background: var(--border-color);
+        }
+
+    /* 右侧按钮组 - Logout按钮单独一行 */
+    .fm-toolbar-right {
+        display: flex;
+        flex-shrink: 0;
+        margin-left: 16px; /* 增加与左侧按钮的间距 */
+        padding-left: 12px; /* 左侧留出空间 */
+    }
+
+    /* 左侧图标按钮 - 只显示图标 */
+    .fm-btn:not(.fm-btn-logout) {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 8px;
+        border: none;
+        background: var(--card-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.2s ease;
+        text-indent: -9999px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+
+        .fm-btn:not(.fm-btn-logout):hover {
+            background: var(--bg-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+
+        .fm-btn:not(.fm-btn-logout):active {
+            background: #e1e1e1 !important;
+            transform: translateY(0);
+        }
+
+        .fm-btn:not(.fm-btn-logout) .fm-btn-icon {
+            display: block !important;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            text-indent: 0;
+            width: auto;
+            height: auto;
+        }
+
+        .fm-btn:not(.fm-btn-logout) span:not(.fm-btn-icon) {
+            display: none !important; /* 隐藏文字 */
+        }
+
+    /* Logout按钮 - 显示文字，独立样式 */
+    .fm-btn-logout {
+        background: var(--error-color);
+        border-color: var(--error-color);
+        color: white;
+        height: 40px;
+        padding: 0 20px !important; /* 增加宽度，让按钮更长 */
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600; /* 加粗字体 */
+        display: flex;
+        align-items: center;
+        gap: 8px; /* 增加图标和文字间距 */
+        white-space: nowrap;
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px rgba(220, 53, 69, 0.2);
+        transition: all 0.2s ease;
+        position: relative;
+        border: none;
+        min-width: 90px; /* 设置最小宽度，避免太窄 */
+        margin-left: 30px; /* 与分隔线保持距离 */
+    }
+
+        .fm-btn-logout .fm-btn-icon,
+        .fm-btn-logout i {
+            font-size: 16px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .fm-btn-logout span {
+            display: inline-block !important; /* 显示"Logout"文字 */
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .fm-btn-logout:hover {
+            background: #c50f1f;
+            border-color: #c50f1f;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(220, 53, 69, 0.4);
+        }
+
+        .fm-btn-logout:active {
+            background: #b00d1c;
+            transform: translateY(0);
+        }
+
+    /* 主题切换按钮 */
+    .fm-theme-toggle {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 8px;
+        border: none;
+        background: var(--card-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        font-size: 16px;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+
+        .fm-theme-toggle:hover {
+            background: var(--bg-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+
+    /* 4. 面包屑导航 */
+    .fm-breadcrumb {
+        display: flex !important;
+        padding: 10px 12px;
+        margin: 0 0 12px 0;
+        background: var(--bg-gray);
+        border-radius: 10px;
+        font-size: 13px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+        border: 1px solid var(--border-color);
+        align-items: center;
+        min-height: 40px;
+    }
+
+    .fm-breadcrumb-item {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .fm-breadcrumb-link {
+        color: var(--primary-blue);
+        text-decoration: none;
+        padding: 3px 6px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+    }
+
+        .fm-breadcrumb-link:hover {
+            background: var(--bg-hover);
+        }
+
+    .fm-breadcrumb-current {
+        font-weight: 600;
+        color: var(--text-primary);
+        padding: 3px 6px;
+    }
+
+    .fm-breadcrumb-separator {
+        margin: 0 3px;
+        color: var(--text-secondary);
+    }
+
+    /* 5. 文件容器 */
+    .fm-files-container {
+        background: var(--card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        margin-top: 12px;
+    }
+
+    /* 隐藏文件统计信息 */
+    .fm-files-count {
+        display: none !important;
+    }
+
+    /* 6. 批量操作区域 */
+    .fm-batch-actions {
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        margin: 0;
+        border-radius: 0;
+        border-bottom: 1px solid var(--border-color);
+        animation: fadeIn 0.3s ease;
+    }
+
+        .fm-batch-actions.show {
+            display: flex;
+        }
+
+    .fm-selected-count {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    #selectedNumber {
+        font-weight: 700;
+        color: var(--primary-blue);
+        background: var(--bg-gray);
+        padding: 3px 8px;
+        border-radius: 10px;
+        margin: 0 4px;
+    }
+
+    /* Delete按钮 */
+    #batchDeleteBtn {
+        width: 40px;
+        height: 35px;
+        padding: 0 12px !important;
+        border-radius: 8px;
+        background: var(--error-color);
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        gap: 6px;
+        white-space: nowrap;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(220, 53, 69, 0.2);
+        transition: all 0.2s ease;
+    }
+
+        #batchDeleteBtn .fm-btn-icon {
+            font-size: 14px;
+            color: white;
+        }
+
+        #batchDeleteBtn span {
+            display: inline-block !important;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        #batchDeleteBtn:hover {
+            background: #c50f1f;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3);
+        }
+
+        #batchDeleteBtn:active {
+            background: #b00d1c;
+            transform: translateY(0);
+        }
+
+    /* 7. LIST视图 */
+    .fm-list-view {
+        width: 100%;
+        border-radius: 0;
+        overflow: hidden;
+        border: none;
+        background: var(--card-bg);
+        display: none;
+    }
+
+    .fm-list-header {
+        display: none;
+    }
+
+    .fm-list-item {
+        display: flex;
+        align-items: center;
+        padding: 14px;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--card-bg);
+        transition: all 0.2s ease;
+        min-height: 60px;
+        position: relative;
+    }
+
+        .fm-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .fm-list-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .fm-list-item.selected {
+            background: var(--selected-bg);
+        }
+
+    /* 复选框 */
+    .fm-list-checkbox-container {
+        width: 36px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 1;
+        flex-shrink: 0;
+    }
+
+    .fm-list-checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        background: var(--card-bg);
+        position: relative;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+        .fm-list-checkbox:hover {
+            border-color: var(--primary-blue);
+        }
+
+        .fm-list-checkbox.checked {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+        }
+
+            .fm-list-checkbox.checked::after {
+                content: '✓' !important;
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 12px;
+                font-weight: bold;
+                width: auto !important;
+                height: auto !important;
+                border: none !important;
+                background: none !important;
+            }
+
+    /* 文件信息列 */
+    .fm-list-icon {
+        font-size: 22px;
+        width: 32px;
+        flex-shrink: 0;
+        text-align: center;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fm-list-name {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: 10px;
+    }
+
+    .fm-list-type,
+    .fm-list-size,
+    .fm-list-date {
+        display: none;
+    }
+
+    /* 操作按钮列 */
+    .fm-list-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .fm-action-btn {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-gray);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 13px;
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+    }
+
+        .fm-action-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-secondary);
+            transform: translateY(-1px);
+        }
+
+        .fm-action-btn:active {
+            background: #e1e1e1;
+        }
+
+    /* 8. GRID视图 */
+    .fm-grid-view {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 12px;
+        padding: 16px;
+        /*background: var(--card-bg);*/
+    }
+
+    .fm-grid-item {
+        padding: 16px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        /*background: var(--card-bg);*/
+        transition: all 0.3s ease;
+        position: relative;
+        text-align: center;
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+        .fm-grid-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            border-color: var(--primary-blue);
+        }
+
+    .fm-grid-item-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+        text-align: center;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fm-grid-item-name {
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.3;
+        min-height: 34px;
+        margin-bottom: 4px;
+    }
+
+    .fm-grid-item-info {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-align: center;
+        font-weight: 500;
+    }
+
+    /* Grid复选框 - 使用✔打勾符号 */
+    .fm-grid-checkbox-container {
+        opacity: 1 !important;
+        top: 10px;
+        left: 10px;
+        position: absolute;
+        z-index: 5;
+    }
+
+    .fm-grid-checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border-color) !important;
+        border-radius: 4px;
+        background: var(--card-bg);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+        .fm-grid-checkbox.checked {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue) !important;
+        }
+
+            /* 使用✔符号 */
+            .fm-grid-checkbox.checked::after {
+                content: '✓' !important;
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 11px;
+                font-weight: bold;
+                width: auto !important;
+                height: auto !important;
+                border: none !important;
+                background: none !important;
+            }
+
+    /* 9. 视图切换按钮 */
+    .fm-view-toggle {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 6px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 3px;
+    }
+
+    .fm-view-btn {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .fm-view-btn.active {
+            color: white;
+        }
+
+        .fm-view-btn:hover:not(.active) {
+            background: var(--bg-hover);
+        }
+
+        .fm-view-btn:active {
+            background: #e1e1e1;
+        }
+
+    /* 10. 删除确认模态框样式 */
+    .fm-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+        .fm-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+    .fm-modal-box {
+        width: calc(100% - 40px);
+        max-width: 380px;
+        padding: 28px;
+        background: var(--card-bg);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        animation: modalSlideIn 0.3s ease-out;
+        margin: 0 auto;
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .fm-modal-icon-header {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--primary-blue-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+    }
+
+        .fm-modal-icon-header i {
+            font-size: 24px;
+            color: var(--primary-blue);
+        }
+
+    /* 删除模态框图标 */
+    #batchDeleteModal .fm-modal-icon-header {
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+        #batchDeleteModal .fm-modal-icon-header i {
+            color: var(--error-color);
+        }
+
+    .fm-modal-content h3 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 12px 0;
+        color: var(--text-primary);
+    }
+
+    .fm-modal-content p {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    }
+
+    .fm-form-group {
+        margin-bottom: 20px;
+        text-align: left;
+    }
+
+    .fm-form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .fm-form-input {
+        width: 100%;
+        padding: 14px;
+        font-size: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--bg-gray);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+        .fm-form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px var(--primary-blue-light);
+            background: var(--card-bg);
+        }
+
+    .fm-modal-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+        .fm-modal-actions button {
+            flex: 1;
+            padding: 14px 16px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            min-width: 100px;
+        }
+
+    /* Cancel 按钮 - 确保显示文字 */
+    .fm-btn-text,
+    #createFolderModal .fm-btn-secondary,
+    #batchDeleteModal .fm-btn-text {
+        background: var(--bg-gray);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color) !important;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+        .fm-btn-text span,
+        #createFolderModal .fm-btn-secondary span,
+        #batchDeleteModal .fm-btn-text span {
+            display: inline-block !important; /* 确保文字显示 */
+        }
+
+        .fm-btn-text:hover,
+        #createFolderModal .fm-btn-secondary:hover,
+        #batchDeleteModal .fm-btn-text:hover {
+            background: var(--bg-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+    /* Create/Delete 按钮 - 确保显示文字 */
+    .fm-btn-primary,
+    #createFolderModal .fm-btn-primary,
+    #batchDeleteModal .fm-btn-danger {
+        background: var(--card-bg);
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+        .fm-btn-primary span,
+        #createFolderModal .fm-btn-primary span,
+        #batchDeleteModal .fm-btn-danger span {
+            display: inline-block !important; /* 确保文字显示 */
+        }
+
+    #batchDeleteModal .fm-btn-danger {
+        background: var(--error-color);
+    }
+
+        .fm-btn-primary:hover,
+        #createFolderModal .fm-btn-primary:hover,
+        #batchDeleteModal .fm-btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        #batchDeleteModal .fm-btn-danger:hover {
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .fm-btn-primary:active,
+        #createFolderModal .fm-btn-primary:active,
+        #batchDeleteModal .fm-btn-danger:active {
+            transform: translateY(0);
+        }
+
+    /* 11. 创建文件夹模态框 - 优化设计，确保按钮有文字 */
+    #createFolderModal .fm-modal-box {
+        width: 100%;
+    max-width: 340px;     /* 控制盒子本体宽度 */
+    margin: 0 auto;       /* 居中 */
+    padding: 32px 28px;   /* 内边距 */
+        background: var(--card-bg);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        animation: modalSlideIn 0.3s ease-out;
+        margin: 0 auto;
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    #createFolderModal .fm-modal-icon-header {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-blue-light), var(--primary-blue));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        box-shadow: 0 8px 20px rgba(0, 120, 212, 0.2);
+    }
+
+        #createFolderModal .fm-modal-icon-header i {
+            font-size: 32px;
+            color: white;
+        }
+
+    #createFolderModal .fm-modal-content h3 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 16px 0;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    #createFolderModal .fm-modal-content p {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin: 0 0 28px 0;
+        line-height: 1.6;
+    }
+
+    #createFolderModal .fm-form-group {
+        margin-bottom: 28px;
+        text-align: left;
+    }
+
+    #createFolderModal .fm-form-label {
+        display: block;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+        padding-left: 4px;
+    }
+
+    #createFolderModal .fm-form-input {
+        width: 100%;
+        padding: 18px;
+        font-size: 17px;
+        border: 2px solid var(--border-color);
+        border-radius: 14px;
+        background: var(--bg-gray);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+        font-weight: 500;
+    }
+
+        #createFolderModal .fm-form-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 4px var(--primary-blue-light);
+            background: var(--card-bg);
+            transform: translateY(-1px);
+        }
+
+        #createFolderModal .fm-form-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+    /* 创建文件夹模态框按钮 - 确保显示文字 */
+    #createFolderModal .fm-modal-actions {
+        display: flex;
+        flex-direction: row; /* 改为水平布局 */
+        gap: 12px;
+        margin-top: 32px;
+    }
+
+        #createFolderModal .fm-modal-actions button {
+            width: auto !important;
+            min-width: 120px !important;
+            padding: 14px 16px !important;
+        }
+
+            #createFolderModal .fm-modal-actions button span {
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                font-size: 15px !important;
+                font-weight: 600 !important;
+            }
+
+        #createFolderModal .fm-modal-actions .fm-btn-secondary,
+        #createFolderModal .fm-modal-actions .fm-btn-primary {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+        }
+
+        /* 修复按钮图标显示 */
+        #createFolderModal .fm-modal-actions button i {
+            display: inline-block !important;
+            font-size: 16px !important;
+            margin-right: 4px !important;
+        }
+
+         /* 取消按钮文字 */
+    #createFolderModal .fm-btn-secondary::before {
+        content: none !important; /* 移除可能的内容覆盖 */
+    }
+
+    /* 取消按钮样式 - 显示文字 */
+    #createFolderModal .fm-btn-secondary {
+        background: var(--bg-gray);
+        color: var(--text-primary);
+        border: 2px solid var(--border-color) !important;
+        width:100px;
+    }
+
+        #createFolderModal .fm-btn-secondary:hover {
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        #createFolderModal .fm-btn-secondary:active {
+            transform: translateY(0);
+        }
+
+    /* 创建按钮样式 - 显示文字 */
+    #createFolderModal .fm-btn-primary {
+        background: linear-gradient( 135deg, var(--primary-blue, #0078d4), var(--primary-blue-hover, #106ebe) );
+        color: white;
+        width: 100px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+
+
+        #createFolderModal .fm-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 120, 212, 0.4);
+            background: linear-gradient( 135deg, var(--primary-blue, #0078d4), var(--primary-blue-hover, #106ebe) );
+        }
+
+        #createFolderModal .fm-btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(0, 120, 212, 0.3);
+        }
+
+
+        #createFolderModal .fm-btn-primary:disabled {
+            background: var(--border-color);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+    /* 模态框关闭按钮 */
+    #createFolderModal .fm-modal-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-gray);
+        border: none;
+        color: var(--text-secondary);
+        font-size: 22px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        z-index: 10;
+    }
+
+        #createFolderModal .fm-modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            transform: rotate(90deg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+    /* 错误提示样式 */
+    #createFolderModal .fm-form-input.error {
+        border-color: var(--error-color);
+        animation: shake 0.5s ease;
+    }
+
+    #createFolderModal .fm-error-message {
+        color: var(--error-color);
+        font-size: 14px;
+        margin-top: 8px;
+        padding-left: 4px;
+        display: none;
+    }
+
+    #createFolderModal .fm-form-input.error + .fm-error-message {
+        display: block;
+    }
+
+    @keyframes shake {
+        0%, 100% {
+            transform: translateX(0);
+        }
+
+        20%, 60% {
+            transform: translateX(-5px);
+        }
+
+        40%, 80% {
+            transform: translateX(5px);
+        }
+    }
+
+    /* ===============================
+   Create Folder Modal - 强制显示文字
+================================ */
+
+    /* 1️⃣ 还原按钮文字 */
+    #createFolderModal .fm-btn {
+        text-indent: 0 !important;
+        overflow: visible !important;
+    }
+
+        /* 2️⃣ 强制显示文字 span */
+        #createFolderModal .fm-btn span {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+    /* 3️⃣ icon + text 横排 */
+    #createFolderModal .fm-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+    }
+
+        /* 4️⃣ icon 显示 */
+        #createFolderModal .fm-btn i,
+        #createFolderModal .fm-btn .fm-btn-icon {
+            display: inline-block !important;
+            font-size: 16px;
+        }
+
+    /* Create New Folder 弹窗：手机模式左右留白 */
+    #createFolderModal .fm-modal {
+        margin-left: 16px;
+        margin-right: 16px;
+        max-width: calc(100% - 32px);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+}

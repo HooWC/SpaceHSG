@@ -245,24 +245,37 @@ function setupDragAndDrop() {
         }
     });
 
-    // Handle file drop - 修改为支持文件夹结构
+    // Handle file drop - 支持多文件与文件夹结构
     document.addEventListener('drop', async function (e) {
         dragCounter = 0;
         if (dropOverlay) dropOverlay.classList.remove('active');
 
         const items = e.dataTransfer.items;
+        const files = e.dataTransfer.files;
 
         if (items && items.length > 0) {
-            // 使用新的函数来处理文件和文件夹
-            const filesWithStructure = await processItemsWithStructure(items);
-            if (filesWithStructure.length > 0) {
-                handleFilesWithStructure(filesWithStructure);
+            // 检查是否包含文件夹：若有则用带结构的逻辑，否则用多文件上传（保证多个文件都能上传）
+            let hasDirectory = false;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].kind === 'file') {
+                    const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+                    if (entry && entry.isDirectory) {
+                        hasDirectory = true;
+                        break;
+                    }
+                }
             }
-        } else {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
+            if (hasDirectory) {
+                const filesWithStructure = await processItemsWithStructure(items);
+                if (filesWithStructure.length > 0) {
+                    handleFilesWithStructure(filesWithStructure);
+                }
+            } else if (files && files.length > 0) {
+                // 纯多文件拖入：用 handleFiles 确保每个文件都上传
                 handleFiles(files);
             }
+        } else if (files && files.length > 0) {
+            handleFiles(files);
         }
     });
 }
