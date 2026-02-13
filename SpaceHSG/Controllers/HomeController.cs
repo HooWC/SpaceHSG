@@ -10,7 +10,7 @@ namespace SpaceHSG.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly string basePath = @"C:\SpaceHSG\sharehsg"; // Change File Path to server
+        private readonly string basePath = @"C:\sharedrive"; // Change File Path to server
         private const string RootPath = ""; // Root path identifier
         
         // Department List
@@ -105,6 +105,151 @@ namespace SpaceHSG.Controllers
             {
                 ViewBag.Error = ex.Message;
                 return View();
+            }
+        }
+
+        [HttpGet]
+        public IActionResult SearchFiles(string path = "", string query = "", int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                // ====== 基本路径验证 ======
+                string currentPath;
+
+                if (string.IsNullOrEmpty(path) || path == RootPath)
+                {
+                    currentPath = basePath;
+                    path = RootPath;
+                }
+                else
+                {
+                    var decodedPath = Uri.UnescapeDataString(path);
+                    currentPath = Path.Combine(basePath, decodedPath);
+
+                    if (!currentPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = "Access denied: Path is outside the authorized directory."
+                        });
+                    }
+                }
+
+                // ====== 部门权限检查（可选） ======
+                var userDepartment = HttpContext.Session.GetString("Department");
+                if (!string.IsNullOrEmpty(userDepartment) && !string.IsNullOrEmpty(path) && path != RootPath)
+                {
+                    var pathParts = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (pathParts.Length > 0)
+                    {
+                        var targetDepartment = pathParts[0];
+                        if (!validDepartments.Contains(targetDepartment, StringComparer.OrdinalIgnoreCase))
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = "Invalid department folder."
+                            });
+                        }
+
+                        // 如果用户不是管理员，限制只能搜索自己部门
+                        var userRole = HttpContext.Session.GetString("Role") ?? "User";
+                        if (userRole != "Admin" && !userDepartment.Equals(targetDepartment, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = $"Access denied. You can only search within your department folder ({userDepartment})."
+                            });
+                        }
+                    }
+                }
+
+                // ====== 获取文件列表 ======
+                var directories = Directory.GetDirectories(currentPath)
+                    .Select(dirPath => new
+                    {
+                        Name = new DirectoryInfo(dirPath).Name,
+                        Type = "Folder",
+                        Size = 0L,
+                        Modified = Directory.GetLastWriteTime(dirPath),
+                        Extension = "",
+                        Path = GetRelativePath(dirPath, basePath),
+                        FullName = new DirectoryInfo(dirPath).FullName
+                    });
+
+                var files = Directory.GetFiles(currentPath)
+                    .Select(filePath => new
+                    {
+                        Name = Path.GetFileName(filePath),
+                        Type = "File",
+                        Size = new FileInfo(filePath).Length,
+                        Modified = System.IO.File.GetLastWriteTime(filePath),
+                        Extension = Path.GetExtension(filePath),
+                        Path = GetRelativePath(filePath, basePath),
+                        FullName = filePath
+                    });
+
+                var allItems = directories.Concat(files)
+                    .OrderByDescending(x => x.Type)
+                    .ThenBy(x => x.Name)
+                    .ToList();
+
+                // ====== 应用搜索过滤 ======
+                var filteredItems = allItems;
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    var searchTerms = query.ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    filteredItems = allItems
+                        .Where(item => searchTerms.All(term =>
+                            item.Name.ToLower().Contains(term)))
+                        .ToList();
+                }
+
+                // ====== 应用分页 ======
+                var totalItems = filteredItems.Count;
+                var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                var pagedItems = filteredItems
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    items = pagedItems,
+                    totalItems = totalItems,
+                    totalPages = totalPages,
+                    currentPage = page,
+                    pageSize = pageSize,
+                    query = query,
+                    path = path
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Access denied. You don't have permission to access this folder."
+                });
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Directory not found."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = $"Search error: {ex.Message}"
+                });
             }
         }
 
@@ -788,7 +933,7 @@ namespace SpaceHSG.Controllers
             }
         }
 
-        // ============== 新增：专门用于AJAX刷新文件列表的部分视图 ==============
+        // ============== 修改：专门用于AJAX刷新文件列表的部分视图 ==============
         [HttpGet]
         public IActionResult GetFilesPartial(string path = "")
         {
@@ -814,8 +959,7 @@ namespace SpaceHSG.Controllers
 
                 // Get folder list
                 var directories = Directory.GetDirectories(currentPath)
-                    .Select(dirPath => new
-                    {
+                    .Select(dirPath => new {
                         Name = new DirectoryInfo(dirPath).Name,
                         Type = "Folder",
                         Size = 0L,
@@ -826,8 +970,7 @@ namespace SpaceHSG.Controllers
 
                 // Get file list
                 var files = Directory.GetFiles(currentPath)
-                    .Select(filePath => new
-                    {
+                    .Select(filePath => new {
                         Name = Path.GetFileName(filePath),
                         Type = "File",
                         Size = new FileInfo(filePath).Length,
@@ -848,12 +991,14 @@ namespace SpaceHSG.Controllers
                 ViewBag.RelativePath = path;
                 ViewBag.IsRoot = string.IsNullOrEmpty(path) || path == RootPath;
 
+                // 🔥 重要：传递当前视图模式，让部分视图知道应该显示哪种视图
+                ViewBag.CurrentViewMode = Request.Headers["X-View-Mode"].FirstOrDefault() ?? "grid";
+
                 return PartialView("_FilesPartial");
             }
             catch (Exception ex)
             {
-                // 返回错误信息
-                return PartialView("_FilesPartial", new { error = ex.Message });
+                return Content($"<div class='fm-error'>Error: {ex.Message}</div>", "text/html");
             }
         }
 
@@ -1140,6 +1285,8 @@ namespace SpaceHSG.Controllers
             return pathParts.Length > 0 ? pathParts[0] : null;
         }
     }
+
+
 
     // Breadcrumb model
     public class Breadcrumb
