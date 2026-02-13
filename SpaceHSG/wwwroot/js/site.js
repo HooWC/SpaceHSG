@@ -1133,6 +1133,8 @@ function hideCreateFolderModal() {
 
 // View switching
 function switchView(view) {
+    console.log('🔄 切换视图到:', view);
+    
     const gridView = document.getElementById('gridView');
     const listView = document.getElementById('listView');
     const gridBtn = document.getElementById('viewGrid');
@@ -1143,7 +1145,10 @@ function switchView(view) {
         if (listView) listView.style.display = 'none';
         if (gridBtn) gridBtn.classList.add('active');
         if (listBtn) listBtn.classList.remove('active');
-        localStorage.setItem('fileManagerView', 'grid');
+        
+        // 🔥 使用统一的键名
+        localStorage.setItem('spaceHSG_viewMode', 'grid');
+        console.log('✅ Grid View 已保存到 localStorage');
 
         // 切换到网格视图时清除选择
         clearSelection();
@@ -1159,7 +1164,10 @@ function switchView(view) {
         if (listView) listView.style.display = 'flex';
         if (listBtn) listBtn.classList.add('active');
         if (gridBtn) gridBtn.classList.remove('active');
-        localStorage.setItem('fileManagerView', 'list');
+        
+        // 🔥 使用统一的键名
+        localStorage.setItem('spaceHSG_viewMode', 'list');
+        console.log('✅ List View 已保存到 localStorage');
 
         // 初始化列表视图的分页和搜索
         setTimeout(() => {

@@ -494,15 +494,16 @@
             bindListViewEvents();
         }, 200);
 
-        setTimeout(() => {
-            console.log('🎯 初始化分页和搜索');
-            const savedView = localStorage.getItem('spaceHSG_viewMode');
-            if (savedView === 'list') {
-                window.initializeListViewFeatures();
-            } else {
-                window.initializePaginationAndSearch();
-            }
-        }, 300);
+        // 🔥 不在这里初始化，让 restoreViewMode 处理
+        // setTimeout(() => {
+        //     console.log('🎯 初始化分页和搜索');
+        //     const savedView = localStorage.getItem('spaceHSG_viewMode');
+        //     if (savedView === 'list') {
+        //         window.initializeListViewFeatures();
+        //     } else {
+        //         window.initializePaginationAndSearch();
+        //     }
+        // }, 300);
 
         setupMobileSearchSync();
         initListSelection();
@@ -1378,7 +1379,20 @@
 
         // ================= 恢复视图模式和分页状态 =================
     function restoreViewMode() {
-        const savedView = localStorage.getItem('spaceHSG_viewMode');
+        // 🔥 同时检查新旧键名（向后兼容）
+        let savedView = localStorage.getItem('spaceHSG_viewMode');
+        
+        // 如果新键名没有值，尝试读取旧键名
+        if (!savedView) {
+            const oldView = localStorage.getItem('fileManagerView');
+            if (oldView) {
+                savedView = oldView;
+                // 迁移到新键名
+                localStorage.setItem('spaceHSG_viewMode', oldView);
+                localStorage.removeItem('fileManagerView');
+                console.log('🔄 已迁移视图模式设置:', oldView);
+            }
+        }
 
         // 强制从 localStorage 读取，如果没有则默认为 grid
         currentViewMode = savedView === 'list' ? 'list' : 'grid';
@@ -1388,25 +1402,48 @@
         const viewGridBtn = document.getElementById('viewGrid');
         const viewListBtn = document.getElementById('viewList');
 
-        if (!gridView || !listView) return;
+        if (!gridView || !listView) {
+            console.warn('⚠️ 视图元素未找到');
+            return;
+        }
+
+        console.log('📖 恢复视图模式:', currentViewMode);
 
         // 根据保存的视图模式显示/隐藏
         if (currentViewMode === 'list') {
+            console.log('👉 应用 List View');
             gridView.style.display = 'none';
             listView.style.display = 'flex';
             viewGridBtn?.classList.remove('active');
             viewListBtn?.classList.add('active');
+            
+            // 🔥 重要：初始化 List View
+            setTimeout(() => {
+                if (typeof window.initializeListViewFeatures === 'function') {
+                    console.log('🚀 初始化 List View 功能');
+                    window.initializeListViewFeatures();
+                }
+            }, 100);
         } else {
+            console.log('👉 应用 Grid View');
             gridView.style.display = 'grid';
             listView.style.display = 'none';
             viewGridBtn?.classList.add('active');
             viewListBtn?.classList.remove('active');
+            
+            // 🔥 重要：初始化 Grid View
+            setTimeout(() => {
+                if (typeof window.initializePaginationAndSearch === 'function') {
+                    console.log('🚀 初始化 Grid View 功能');
+                    window.initializePaginationAndSearch();
+                }
+            }, 100);
         }
 
         // 确保 localStorage 中的值正确
         localStorage.setItem('spaceHSG_viewMode', currentViewMode);
 
-        console.log('视图模式恢复为:', currentViewMode);
+        console.log('✅ 视图模式恢复完成:', currentViewMode);
     }
 
         // ================= 视图切换函数（无刷新）=================
