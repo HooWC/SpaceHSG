@@ -43,11 +43,18 @@
     --info-color: #4a9eff;
 }
 
+
     /* 确保暗色主题下的文件容器 */
     [data-bs-theme="dark"] .fm-files-container,
     [data-bs-theme="dark"] .fm-btn:not(.fm-btn-primary):not(.fm-btn-danger):not(.fm-btn-logout) {
-        background-color: var(--bg-gray);
+        background-color: var(--bg-hover);
         color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    [data-bs-theme="dark"] .fm-btn:not(.fm-btn-primary):not(.fm-btn-danger):not(.fm-btn-logout):hover {
+        background-color: var(--bg-hover);
+        border-color:var(--text-secondary);
     }
 
     [data-bs-theme="dark"] .fm-view-btn.active {
@@ -132,7 +139,7 @@ body {
 
     .fm-toolbar .fm-toolbar-left {
         display: flex;
-        justify-content:flex-start;
+        justify-content: flex-start;
     }
 
         .fm-toolbar .fm-toolbar-left .fm-btn {
@@ -142,20 +149,20 @@ body {
     .fm-toolbar .fm-toolbar-right-logout {
     }
 
-    .fm-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-gray);
-        color: var(--text-primary);
-        border-radius: 4px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
+.fm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-gray);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
 
     .fm-btn:hover {
         background: var(--bg-hover);
@@ -163,7 +170,7 @@ body {
     }
 
 .fm-btn-primary {
-    background: var(--bg-gray);
+    background: var(--bg-hover);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
 }
@@ -202,6 +209,7 @@ body {
     border-radius: 4px;
     margin-bottom: 16px;
     flex-wrap: wrap;
+    border:1px solid var(--border-color);
 }
 
 .fm-breadcrumb-item {
@@ -561,30 +569,6 @@ body {
     transition: width 0.3s ease;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .fm-list-header,
-    .fm-list-item {
-        grid-template-columns: 50px 50px 1fr 120px;
-    }
-
-    .fm-list-type,
-    .fm-list-size,
-    .fm-list-date {
-        display: none;
-    }
-
-    .fm-grid-view {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 12px;
-        padding: 12px;
-    }
-
-    .fm-toolbar {
-        flex-wrap: wrap;
-    }
-}
-
 /* File Icons by Extension */
 .fm-icon-folder {
     color: #FFB900;
@@ -701,11 +685,12 @@ body {
     justify-content: center;
     font-size: 20px;
     transition: all 0.3s ease;
-    margin-left:5px;
+    margin-left: 5px;
 }
 
 [data-bs-theme="dark"] .fm-theme-toggle {
-    background: #1e1e1e;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
 }
 
 .fm-theme-toggle:hover {
@@ -1544,8 +1529,8 @@ a {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4); /* 半透明黑 */
-    backdrop-filter: blur(4px); /* 背景模糊 - 高级感关键 */
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1663,7 +1648,7 @@ a {
 
 /* 危险按钮 - 红色 */
 .fm-btn-danger {
-    background: #d13438; /* Microsoft Red */
+    background: #d13438;
     border: none;
     color: white;
     box-shadow: 0 4px 12px rgba(209, 52, 56, 0.3);
@@ -1714,8 +1699,289 @@ a {
         transform: scale(1) translateY(0);
     }
 
-/* ================== 移动端响应式设计 - 更新设计 ================== */
+/* ============== 搜索栏样式 ============== */
+/* 桌面端搜索栏样式 - 完全保持不变 */
+.fm-toolbar-search {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    margin: 0 20px;
+}
+
+.fm-search-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+}
+
+.fm-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 14px;
+    z-index: 1;
+}
+
+.fm-search-input {
+    width: 100%;
+    padding: 10px 40px 10px 40px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+    .fm-search-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px var(--primary-blue-light);
+    }
+
+.fm-search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: none;
+    font-size: 12px;
+}
+
+    .fm-search-clear:hover {
+        color: var(--text-primary);
+    }
+
+.fm-search-input:not(:placeholder-shown) + .fm-search-clear {
+    display: block;
+}
+
+/* ============== 分页样式 ============== */
+.fm-pagination-wrapper {
+    background: var(--bg-hover);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.fm-pagination {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.fm-page-item {
+    margin: 0 2px;
+}
+
+.fm-page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+    .fm-page-link:hover {
+        background: var(--bg-hover);
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+        transform: translateY(-1px);
+    }
+
+.fm-page-item.active .fm-page-link {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: white;
+}
+
+.fm-page-item.disabled .fm-page-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.fm-pagination-info {
+    margin-right: 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+
+
 @media (max-width: 768px) {
+    /* 添加分页控件移动端样式 */
+    .fm-pagination-wrapper {
+        flex-direction: column;
+        padding: 15px 10px;
+        background: var(--bg-gray);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .fm-pagination-info {
+        margin-bottom: 10px;
+        font-size: 13px;
+    }
+
+    .fm-pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .fm-page-link {
+        min-width: 34px;
+        height: 34px;
+        font-size: 13px;
+    }
+}
+
+/* ============== 搜索结果高亮样式 ============== */
+.fm-highlight {
+    background-color: rgba(255, 230, 0, 0.3);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* ============== 空搜索状态样式 ============== */
+.fm-empty-search {
+    padding: 80px 20px;
+    text-align: center;
+}
+
+.fm-empty-search-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+    color: var(--text-secondary);
+}
+
+.fm-empty-search-text {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.fm-empty-search-hint {
+    font-size: 14px;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+/* ============== 搜索结果标题样式 - 只在桌面显示 ============== */
+/* 桌面版样式 - 保持显示 */
+.fm-search-results-info {
+    display: block;
+}
+
+
+
+/* ============== 移动端隐藏搜索结果标题 ============== */
+@media (max-width: 768px) {
+    /* 隐藏搜索结果标题和数量 */
+    .fm-search-results-info {
+        display: none !important;
+    }
+}
+
+/* ================== 移动端响应式设计 ================== */
+@media (max-width: 768px) {
+
+    /* 左侧图标按钮样式 - 只影响工具栏按钮 */
+    .fm-toolbar-left .fm-btn:not(.fm-btn-logout) {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 8px;
+        border: none;
+        background: var(--bg-hover);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.2s ease;
+        text-indent: -9999px; /* 只影响工具栏按钮 */
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+
+        .fm-toolbar-left .fm-btn:not(.fm-btn-logout) span:not(.fm-btn-icon) {
+            display: none !important; /* 只影响工具栏按钮 */
+        }
+
+    /* ============== 移动端模态框按钮显示文字 ============== */
+    /* 创建文件夹模态框的 Cancel 和 Create 按钮 */
+    #createFolderModal .fm-modal-footer .fm-btn-secondary,
+    #createFolderModal .fm-modal-footer .fm-btn-primary {
+        width: auto !important;
+        height: auto !important;
+        padding: 8px 16px !important;
+        text-indent: 0 !important;
+        overflow: visible !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: var(--bg-gray) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 4px !important;
+    }
+
+    /* 取消按钮特定样式 */
+    #createFolderModal .fm-modal-footer .fm-btn-secondary {
+        background: var(--bg-hover) !important;
+        color: var(--text-primary) !important;
+    }
+
+    /* 创建按钮特定样式 */
+    #createFolderModal .fm-modal-footer .fm-btn-primary {
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-hover)) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+        /* 显示按钮文字 */
+        #createFolderModal .fm-modal-footer .fm-btn-secondary span,
+        #createFolderModal .fm-modal-footer .fm-btn-primary span {
+            display: inline-block !important;
+            font-size: 14px;
+            font-weight: 500;
+            text-indent: 0;
+        }
+
+        /* 隐藏模态框按钮中的图标（如果想保持干净的文字按钮） */
+        #createFolderModal .fm-modal-footer .fm-btn-secondary .fm-btn-icon,
+        #createFolderModal .fm-modal-footer .fm-btn-primary .fm-btn-icon {
+            display: none !important;
+        }
+
+
     /* 1. 基础容器 */
     .file-manager-container {
         padding: 12px;
@@ -1724,7 +1990,7 @@ a {
         background: var(--card-bg);
     }
 
-    /* 2. 标题区域 */
+    /* 2. 标题区域 - 完全保持原样 */
     .fm-header {
         padding: 0 0 8px 0;
         margin-bottom: 8px;
@@ -1761,12 +2027,12 @@ a {
         color: var(--text-primary);
     }
 
-    /* 3. 工具栏按钮 - 让Logout按钮独立 */
+    /* 3. 工具栏 - 完全保持原样，只是移除搜索栏 */
     .fm-toolbar {
         display: flex;
-        justify-content: space-between; /* 左右分组 */
+        justify-content: space-between;
         align-items: center;
-        gap: 0; /* 移除gap，使用margin控制间距 */
+        gap: 0;
         padding: 8px;
         margin-bottom: 12px;
         overflow-x: auto;
@@ -1778,21 +2044,25 @@ a {
         min-height: 44px;
         width: 100%;
         box-sizing: border-box;
-        position: relative; /* 用于分隔线定位 */
     }
 
-    /* 左侧按钮组 - 图标按钮 */
+        /* 移除工具栏中的搜索栏 - 因为我们要把它放在下面 */
+        .fm-toolbar .fm-toolbar-search {
+            display: none !important;
+        }
+
+    /* 左侧按钮组 - 图标按钮，完全保持原样 */
     .fm-toolbar-left {
         display: flex;
         gap: 3px;
         flex-shrink: 0;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        padding-right: 1px; /* 增加与Logout按钮的间距 */
+        padding-right: 1px;
         position: relative;
     }
 
-        /* 在左侧按钮组和Logout按钮之间添加分隔线 */
+        /* 分隔线 - 完全保持原样 */
         .fm-toolbar-left::after {
             content: '';
             position: absolute;
@@ -1804,15 +2074,7 @@ a {
             background: var(--border-color);
         }
 
-    /* 右侧按钮组 - Logout按钮单独一行 */
-    .fm-toolbar-right {
-        display: flex;
-        flex-shrink: 0;
-        margin-left: 16px; /* 增加与左侧按钮的间距 */
-        padding-left: 12px; /* 左侧留出空间 */
-    }
-
-    /* 左侧图标按钮 - 只显示图标 */
+    /* 左侧图标按钮样式 - 完全保持原样 */
     .fm-btn:not(.fm-btn-logout) {
         width: 40px;
         height: 40px;
@@ -1858,30 +2120,29 @@ a {
         }
 
         .fm-btn:not(.fm-btn-logout) span:not(.fm-btn-icon) {
-            display: none !important; /* 隐藏文字 */
+            display: none !important;
         }
 
-    /* Logout按钮 - 显示文字，独立样式 */
+    /* Logout按钮 - 完全保持原样 */
     .fm-btn-logout {
         background: var(--error-color);
         border-color: var(--error-color);
         color: white;
         height: 40px;
-        padding: 0 10px !important; /* 增加宽度，让按钮更长 */
+        padding: 0 10px !important;
         border-radius: 8px;
         font-size: 14px;
-        font-weight: 600; /* 加粗字体 */
+        font-weight: 600;
         display: flex;
         align-items: center;
-        gap: 8px; /* 增加图标和文字间距 */
+        gap: 8px;
         white-space: nowrap;
         flex-shrink: 0;
         box-shadow: 0 1px 3px rgba(220, 53, 69, 0.2);
         transition: all 0.2s ease;
-        position: relative;
         border: none;
-        min-width: 90px; /* 设置最小宽度，避免太窄 */
-        margin-left: 20px; /* 与分隔线保持距离 */
+        min-width: 90px;
+        margin-left: 20px;
     }
 
         .fm-btn-logout .fm-btn-icon,
@@ -1892,7 +2153,7 @@ a {
         }
 
         .fm-btn-logout span {
-            display: inline-block !important; /* 显示"Logout"文字 */
+            display: inline-block !important;
             font-size: 13px;
             font-weight: 600;
         }
@@ -1909,14 +2170,14 @@ a {
             transform: translateY(0);
         }
 
-    /* 主题切换按钮 */
+    /* 主题切换按钮 - 完全保持原样 */
     .fm-theme-toggle {
         width: 40px;
         height: 40px;
         padding: 0;
         border-radius: 8px;
         border: none;
-        background: var(--card-bg);
+        background: var(--bg-hover);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1934,7 +2195,92 @@ a {
             box-shadow: 0 3px 6px rgba(0,0,0,0.15);
         }
 
-    /* 4. 面包屑导航 */
+    /* 4. 移动端搜索栏 - 放在工具栏和面包屑之间 */
+    .fm-toolbar-search {
+        display: flex !important;
+        margin: 8px 0 12px 0;
+        width: 100%;
+        justify-content: center;
+        order: 0;
+    }
+
+    /* 搜索框样式 - 移动端优化 */
+    .fm-search-container {
+        max-width: 100%;
+        width: 100%;
+        position: relative;
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+    }
+
+        .fm-search-container:focus-within {
+            border-color: var(--primary-blue);
+            box-shadow: 0 2px 6px rgba(0, 120, 212, 0.15);
+        }
+
+    .fm-search-input {
+        width: 100%;
+        height: 38px;
+        padding: 8px 40px 8px 40px;
+        border: none !important;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 14px;
+        border-radius: 8px;
+        box-shadow: none;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+        .fm-search-input:focus {
+            outline: none;
+            box-shadow: none;
+            background: transparent;
+        }
+
+        .fm-search-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+            font-size: 13px;
+        }
+
+    .fm-search-icon {
+        left: 14px;
+        font-size: 14px;
+        color: var(--text-secondary);
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fm-search-clear {
+        right: 12px;
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        background: var(--bg-hover);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        transition: all 0.2s ease;
+        opacity: 0.8;
+    }
+
+        .fm-search-clear:hover {
+            background: var(--primary-blue);
+            color: white;
+            opacity: 1;
+        }
+
+    /* 5. 面包屑导航 - 保持原样 */
     .fm-breadcrumb {
         display: flex !important;
         padding: 10px 12px;
@@ -1982,7 +2328,7 @@ a {
         color: var(--text-secondary);
     }
 
-    /* 5. 文件容器 */
+    /* 6. 文件容器 */
     .fm-files-container {
         background: var(--card-bg);
         border-radius: 12px;
@@ -1996,7 +2342,7 @@ a {
         display: none !important;
     }
 
-    /* 6. 批量操作区域 */
+    /* 7. 批量操作区域 */
     .fm-batch-actions {
         display: none;
         justify-content: space-between;
@@ -2027,7 +2373,6 @@ a {
         margin: 0 4px;
     }
 
-    /* Delete按钮 */
     #batchDeleteBtn {
         width: 40px;
         height: 35px;
@@ -2069,7 +2414,7 @@ a {
             transform: translateY(0);
         }
 
-    /* 7. LIST视图 */
+    /* 8. LIST视图 */
     .fm-list-view {
         width: 100%;
         border-radius: 0;
@@ -2084,7 +2429,7 @@ a {
     }
 
     .fm-list-item {
-        display: flex;
+        display: flex !important;
         align-items: center;
         padding: 14px;
         border-bottom: 1px solid var(--border-color);
@@ -2106,7 +2451,6 @@ a {
             background: var(--selected-bg);
         }
 
-    /* 复选框 */
     .fm-list-checkbox-container {
         width: 36px;
         display: flex;
@@ -2152,7 +2496,6 @@ a {
                 background: none !important;
             }
 
-    /* 文件信息列 */
     .fm-list-icon {
         font-size: 22px;
         width: 32px;
@@ -2180,7 +2523,6 @@ a {
         display: none;
     }
 
-    /* 操作按钮列 */
     .fm-list-actions {
         display: flex;
         gap: 6px;
@@ -2212,20 +2554,18 @@ a {
             background: #e1e1e1;
         }
 
-    /* 8. GRID视图 */
+    /* 9. GRID视图 */
     .fm-grid-view {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
         gap: 12px;
         padding: 16px;
-        /*background: var(--card-bg);*/
     }
 
     .fm-grid-item {
         padding: 16px 12px;
         border-radius: 10px;
         border: 1px solid var(--border-color);
-        /*background: var(--card-bg);*/
         transition: all 0.3s ease;
         position: relative;
         text-align: center;
@@ -2271,7 +2611,6 @@ a {
         font-weight: 500;
     }
 
-    /* Grid复选框 - 使用✔打勾符号 */
     .fm-grid-checkbox-container {
         opacity: 1 !important;
         top: 10px;
@@ -2297,7 +2636,6 @@ a {
             border-color: var(--primary-blue) !important;
         }
 
-            /* 使用✔符号 */
             .fm-grid-checkbox.checked::after {
                 content: '✓' !important;
                 position: absolute;
@@ -2313,7 +2651,7 @@ a {
                 background: none !important;
             }
 
-    /* 9. 视图切换按钮 */
+    /* 10. 视图切换按钮 */
     .fm-view-toggle {
         position: fixed;
         bottom: 20px;
@@ -2344,6 +2682,7 @@ a {
     }
 
         .fm-view-btn.active {
+            background: var(--bg-hover);
             color: white;
         }
 
@@ -2351,11 +2690,7 @@ a {
             background: var(--bg-hover);
         }
 
-        .fm-view-btn:active {
-            background: #e1e1e1;
-        }
-
-    /* 10. 删除确认模态框样式 */
+    /* 11. 删除确认模态框样式 - 保持原样 */
     .fm-modal-overlay {
         position: fixed;
         top: 0;
@@ -2393,454 +2728,91 @@ a {
         position: relative;
     }
 
-    @keyframes modalSlideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-20px) scale(0.95);
-        }
 
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    .fm-modal-icon-header {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: var(--primary-blue-light);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 20px;
-    }
-
-        .fm-modal-icon-header i {
-            font-size: 24px;
-            color: var(--primary-blue);
-        }
-
-    /* 删除模态框图标 */
-    #batchDeleteModal .fm-modal-icon-header {
-        background: rgba(220, 53, 69, 0.1);
-    }
-
-        #batchDeleteModal .fm-modal-icon-header i {
-            color: var(--error-color);
-        }
-
-    .fm-modal-content h3 {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 0 12px 0;
-        color: var(--text-primary);
-    }
-
-    .fm-modal-content p {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin: 0 0 20px 0;
-        line-height: 1.5;
-    }
-
-    .fm-form-group {
-        margin-bottom: 20px;
-        text-align: left;
-    }
-
-    .fm-form-label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 8px;
-    }
-
-    .fm-form-input {
-        width: 100%;
-        padding: 14px;
-        font-size: 15px;
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        background: var(--bg-gray);
-        color: var(--text-primary);
-        transition: all 0.2s ease;
-        box-sizing: border-box;
-    }
-
-        .fm-form-input:focus {
-            outline: none;
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px var(--primary-blue-light);
-            background: var(--card-bg);
-        }
-
-    .fm-modal-actions {
-        display: flex;
-        gap: 12px;
-        margin-top: 24px;
-    }
-
-        .fm-modal-actions button {
-            flex: 1;
-            padding: 14px 16px;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: 10px;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
-            min-width: 100px;
-        }
-
-    /* Cancel 按钮 - 确保显示文字 */
-    .fm-btn-text,
-    #createFolderModal .fm-btn-secondary,
-    #batchDeleteModal .fm-btn-text {
-        background: var(--bg-gray);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color) !important;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-    }
-
-        .fm-btn-text span,
-        #createFolderModal .fm-btn-secondary span,
-        #batchDeleteModal .fm-btn-text span {
-            display: inline-block !important; /* 确保文字显示 */
-        }
-
-        .fm-btn-text:hover,
-        #createFolderModal .fm-btn-secondary:hover,
-        #batchDeleteModal .fm-btn-text:hover {
-            background: var(--bg-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-    /* Create/Delete 按钮 - 确保显示文字 */
-    .fm-btn-primary,
-    #createFolderModal .fm-btn-primary,
-    #batchDeleteModal .fm-btn-danger {
-        background: var(--card-bg);
-        color: white;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-    }
-
-        .fm-btn-primary span,
-        #createFolderModal .fm-btn-primary span,
-        #batchDeleteModal .fm-btn-danger span {
-            display: inline-block !important; /* 确保文字显示 */
-        }
-
-    #batchDeleteModal .fm-btn-danger {
-        background: var(--error-color);
-    }
-
-        .fm-btn-primary:hover,
-        #createFolderModal .fm-btn-primary:hover,
-        #batchDeleteModal .fm-btn-danger:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
-        }
-
-        #batchDeleteModal .fm-btn-danger:hover {
-            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
-        }
-
-        .fm-btn-primary:active,
-        #createFolderModal .fm-btn-primary:active,
-        #batchDeleteModal .fm-btn-danger:active {
-            transform: translateY(0);
-        }
-
-    /* 11. 创建文件夹模态框 - 优化设计，确保按钮有文字 */
+    /* 12. 创建文件夹模态框样式 - 保持原样 */
     #createFolderModal .fm-modal-box {
         width: 100%;
-    max-width: 340px;     /* 控制盒子本体宽度 */
-    margin: 0 auto;       /* 居中 */
-    padding: 32px 28px;   /* 内边距 */
+        max-width: 340px;
+        margin: 0 auto;
+        padding: 32px 28px;
         background: var(--card-bg);
         border-radius: 20px;
         box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.3);
         text-align: center;
         animation: modalSlideIn 0.3s ease-out;
-        margin: 0 auto;
         border: 1px solid var(--border-color);
         position: relative;
     }
 
-    #createFolderModal .fm-modal-icon-header {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--primary-blue-light), var(--primary-blue));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 24px;
-        box-shadow: 0 8px 20px rgba(0, 120, 212, 0.2);
-    }
 
-        #createFolderModal .fm-modal-icon-header i {
-            font-size: 32px;
-            color: white;
+
+    /* 13. 小屏手机进一步优化 */
+    @media (max-width: 380px) {
+        .fm-search-input {
+            height: 36px;
+            padding: 8px 36px 8px 36px;
+            font-size: 13px;
         }
 
-    #createFolderModal .fm-modal-content h3 {
-        font-size: 24px;
-        font-weight: 700;
-        margin: 0 0 16px 0;
-        color: var(--text-primary);
-        line-height: 1.3;
+        .fm-search-icon {
+            left: 12px;
+            font-size: 13px;
+        }
+
+        .fm-search-clear {
+            right: 10px;
+            width: 14px;
+            height: 14px;
+        }
     }
 
-    #createFolderModal .fm-modal-content p {
-        font-size: 16px;
-        color: var(--text-secondary);
-        margin: 0 0 28px 0;
-        line-height: 1.6;
+    /* 14. 搜索结果高亮在移动端的优化 */
+    .fm-highlight {
+        background-color: rgba(255, 200, 0, 0.4) !important;
+        color: inherit !important;
+        font-weight: 600 !important;
+        padding: 0 2px !important;
+        border-radius: 3px !important;
     }
 
-    #createFolderModal .fm-form-group {
-        margin-bottom: 28px;
-        text-align: left;
+    [data-bs-theme="dark"] .fm-highlight {
+        background-color: rgba(255, 200, 0, 0.3) !important;
+        color: #ffffff !important;
     }
 
-    #createFolderModal .fm-form-label {
-        display: block;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--text-primary);
+    /* 15. 空搜索状态优化 */
+    .fm-empty-search {
+        padding: 40px 20px;
+        text-align: center;
+    }
+
+    .fm-empty-search-icon {
+        font-size: 36px;
         margin-bottom: 12px;
-        padding-left: 4px;
+        opacity: 0.2;
     }
 
-    #createFolderModal .fm-form-input {
-        width: 100%;
-        padding: 18px;
-        font-size: 17px;
-        border: 2px solid var(--border-color);
-        border-radius: 14px;
-        background: var(--bg-gray);
+    .fm-empty-search-text {
+        font-size: 14px;
+        margin-bottom: 6px;
         color: var(--text-primary);
-        transition: all 0.3s ease;
-        box-sizing: border-box;
         font-weight: 500;
     }
 
-        #createFolderModal .fm-form-input:focus {
-            outline: none;
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 4px var(--primary-blue-light);
-            background: var(--card-bg);
-            transform: translateY(-1px);
-        }
-
-        #createFolderModal .fm-form-input::placeholder {
-            color: var(--text-secondary);
-            opacity: 0.6;
-        }
-
-    /* 创建文件夹模态框按钮 - 确保显示文字 */
-    #createFolderModal .fm-modal-actions {
-        display: flex;
-        flex-direction: row; /* 改为水平布局 */
-        gap: 12px;
-        margin-top: 32px;
-    }
-
-        #createFolderModal .fm-modal-actions button {
-            width: auto !important;
-            min-width: 120px !important;
-            padding: 14px 16px !important;
-        }
-
-            #createFolderModal .fm-modal-actions button span {
-                display: inline-block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                font-size: 15px !important;
-                font-weight: 600 !important;
-            }
-
-        #createFolderModal .fm-modal-actions .fm-btn-secondary,
-        #createFolderModal .fm-modal-actions .fm-btn-primary {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-        }
-
-        /* 修复按钮图标显示 */
-        #createFolderModal .fm-modal-actions button i {
-            display: inline-block !important;
-            font-size: 16px !important;
-            margin-right: 4px !important;
-        }
-
-         /* 取消按钮文字 */
-    #createFolderModal .fm-btn-secondary::before {
-        content: none !important; /* 移除可能的内容覆盖 */
-    }
-
-    /* 取消按钮样式 - 显示文字 */
-    #createFolderModal .fm-btn-secondary {
-        background: var(--bg-gray);
-        color: var(--text-primary);
-        border: 2px solid var(--border-color) !important;
-        width:100px;
-    }
-
-        #createFolderModal .fm-btn-secondary:hover {
-            background: var(--bg-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        #createFolderModal .fm-btn-secondary:active {
-            transform: translateY(0);
-        }
-
-    /* 创建按钮样式 - 显示文字 */
-    #createFolderModal .fm-btn-primary {
-        background: linear-gradient( 135deg, var(--primary-blue, #0078d4), var(--primary-blue-hover, #106ebe) );
-        color: white;
-        width: 100px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-        transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-    }
-
-
-
-        #createFolderModal .fm-btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 120, 212, 0.4);
-            background: linear-gradient( 135deg, var(--primary-blue, #0078d4), var(--primary-blue-hover, #106ebe) );
-        }
-
-        #createFolderModal .fm-btn-primary:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 15px rgba(0, 120, 212, 0.3);
-        }
-
-
-        #createFolderModal .fm-btn-primary:disabled {
-            background: var(--border-color);
-            color: var(--text-secondary);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-    /* 模态框关闭按钮 */
-    #createFolderModal .fm-modal-close {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--bg-gray);
-        border: none;
+    .fm-empty-search-hint {
+        font-size: 12px;
         color: var(--text-secondary);
-        font-size: 22px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-        z-index: 10;
+        opacity: 0.7;
     }
 
-        #createFolderModal .fm-modal-close:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-            transform: rotate(90deg);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-    /* 错误提示样式 */
-    #createFolderModal .fm-form-input.error {
-        border-color: var(--error-color);
-        animation: shake 0.5s ease;
-    }
-
-    #createFolderModal .fm-error-message {
-        color: var(--error-color);
-        font-size: 14px;
-        margin-top: 8px;
-        padding-left: 4px;
-        display: none;
-    }
-
-    #createFolderModal .fm-form-input.error + .fm-error-message {
-        display: block;
-    }
-
-    @keyframes shake {
-        0%, 100% {
-            transform: translateX(0);
-        }
-
-        20%, 60% {
-            transform: translateX(-5px);
-        }
-
-        40%, 80% {
-            transform: translateX(5px);
-        }
-    }
-
-    /* ===============================
-   Create Folder Modal - 强制显示文字
-================================ */
-
-    /* 1️⃣ 还原按钮文字 */
-    #createFolderModal .fm-btn {
-        text-indent: 0 !important;
-        overflow: visible !important;
-    }
-
-        /* 2️⃣ 强制显示文字 span */
-        #createFolderModal .fm-btn span {
-            display: inline-block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-    /* 3️⃣ icon + text 横排 */
-    #createFolderModal .fm-btn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-    }
-
-        /* 4️⃣ icon 显示 */
-        #createFolderModal .fm-btn i,
-        #createFolderModal .fm-btn .fm-btn-icon {
-            display: inline-block !important;
-            font-size: 16px;
-        }
-
-    /* Create New Folder 弹窗：手机模式左右留白 */
-    #createFolderModal .fm-modal {
-        margin-left: 16px;
-        margin-right: 16px;
-        max-width: calc(100% - 32px);
-        width: 100%;
-        box-sizing: border-box;
-    }
 
 }
+
+/* ============== 隐藏桌面端多余的搜索栏 ============== */
+@media (min-width: 769px) {
+    /* 隐藏移动端搜索栏 - 只在桌面端隐藏 */
+    .fm-toolbar-search.mobile-only {
+        display: none !important;
+    }
+}
+
