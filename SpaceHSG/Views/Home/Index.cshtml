@@ -361,14 +361,20 @@
 
             <!-- 搜索结果为空的状态 -->
             <div class="fm-empty-search" id="emptySearchState" style="display: none;">
-                <div class="fm-empty-search-icon">
-                    <i class="fas fa-search"></i>
+                <div class="fm-empty-search-content">
+                    <div class="fm-empty-search-icon">
+                        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="45" cy="45" r="30" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"/>
+                            <line x1="67" y1="67" x2="85" y2="85" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
+                            <path d="M45 35 L45 45 M35 45 L55 45" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+                        </svg>
+                    </div>
+                    <div class="fm-empty-search-text">No matching files or folders</div>
+                    <div class="fm-empty-search-hint">Try adjusting your search terms or filters</div>
+                    @*<button class="fm-btn fm-btn-secondary fm-clear-search-btn" onclick="clearSearch()">
+                        <i class="fas fa-times"></i> Clear Search
+                    </button>*@
                 </div>
-                <div class="fm-empty-search-text">No matching files or folders found</div>
-                <div class="fm-empty-search-hint">Try different keywords or clear the search</div>
-                <button class="fm-btn fm-btn-secondary" onclick="clearSearch()" style="margin-top: 16px;">
-                    <i class="fas fa-times"></i> Clear Search
-                </button>
             </div>
         }
         else
@@ -492,9 +498,9 @@
             console.log('🎯 初始化分页和搜索');
             const savedView = localStorage.getItem('spaceHSG_viewMode');
             if (savedView === 'list') {
-                initializeListViewFeatures();
+                window.initializeListViewFeatures();
             } else {
-                initializePaginationAndSearch();
+                window.initializePaginationAndSearch();
             }
         }, 300);
 
@@ -503,17 +509,22 @@
     });
 
     // ================= 🔥 列表视图初始化（最终修复版）=================
-    function initializeListViewFeatures() {
+    window.initializeListViewFeatures = function() {
         console.log('🔥 初始化列表视图');
 
         const listItems = document.querySelectorAll('#listView .fm-list-item');
-        if (listItems.length === 0) return;
+        console.log(`找到 ${listItems.length} 个列表项`);
+        
+        if (listItems.length === 0) {
+            console.warn('没有找到任何列表项！');
+            return;
+        }
 
         window.listViewItems = [];
         listItems.forEach((item, index) => {
-            // 重置所有样式
-            item.style.display = 'none';
+            // 🔥 关键：移除 fm-hidden 类，使用内联样式控制显示
             item.classList.remove('fm-hidden');
+            item.style.display = 'none';
 
             window.listViewItems.push({
                 element: item,
@@ -524,7 +535,9 @@
             });
         });
 
+        console.log(`初始化了 ${window.listViewItems.length} 个列表视图项目`);
         window.listViewFilteredItems = [...window.listViewItems];
+        console.log(`过滤后的项目数量: ${window.listViewFilteredItems.length}`);
 
         // 恢复状态
         const savedSearch = localStorage.getItem('spaceHSG_listView_search');
@@ -532,20 +545,24 @@
 
         window.listViewSearchTerm = savedSearch || '';
         window.listViewCurrentPage = savedPage ? parseInt(savedPage) : 1;
+        console.log(`恢复状态: 搜索词="${window.listViewSearchTerm}", 当前页=${window.listViewCurrentPage}`);
 
         if (window.listViewSearchTerm) {
             const searchInput = document.getElementById('searchInput');
             const mobileSearchInput = document.getElementById('mobileSearchInput');
             if (searchInput) searchInput.value = window.listViewSearchTerm;
             if (mobileSearchInput) mobileSearchInput.value = window.listViewSearchTerm;
+            console.log('执行搜索...');
             performListViewSearch(window.listViewSearchTerm);
         } else {
+            console.log('应用分页...');
             applyListViewPagination();
         }
 
         bindListViewSearch();
         updateSelectAllCheckbox();
-    }
+        console.log('✅ 列表视图初始化完成');
+    };
 
 
         // ================= 🔥 完全重写：列表视图搜索 =================
@@ -577,20 +594,19 @@
 
         // 如果没有匹配的项目
         if (window.listViewFilteredItems.length === 0) {
+            console.log('⚠️ 没有匹配结果');
             // 隐藏分页
             document.getElementById('paginationWrapper')?.style.setProperty('display', 'none', 'important');
             // 显示空状态
             showListViewEmptyState(searchTerm);
+            // 显示搜索结果信息（0个结果）
+            showListViewSearchResults(searchTerm, 0);
             return;
         }
 
-        // 🔥🔥🔥 直接显示所有匹配的项目（不分页，先确保能看到搜索结果）
-        window.listViewFilteredItems.forEach((item, index) => {
-            if (item.element) {
-                item.element.style.display = 'grid'; // 显示
-                console.log(`显示项目 ${index + 1}: ${item.name}`);
-            }
-        });
+        // 隐藏空状态
+        const emptyState = document.getElementById('emptySearchState');
+        if (emptyState) emptyState.style.display = 'none';
 
         // 重置到第一页
         window.listViewCurrentPage = 1;
@@ -602,22 +618,15 @@
         // 显示搜索结果信息
         showListViewSearchResults(searchTerm, window.listViewFilteredItems.length);
 
-        // 更新分页控件（但先不应用分页，先确保搜索结果可见）
-        const totalPages = Math.ceil(window.listViewFilteredItems.length / ITEMS_PER_PAGE);
-        if (window.listViewFilteredItems.length > ITEMS_PER_PAGE) {
-            // 如果超过一页，再启用分页
-            updateListViewPaginationControls(window.listViewFilteredItems.length, totalPages);
-            // 然后应用分页，只显示第一页
-            setTimeout(() => {
-                applyListViewPagination();
-            }, 10);
-        } else {
-            // 不超过一页，隐藏分页
-            document.getElementById('paginationWrapper')?.style.setProperty('display', 'none', 'important');
-        }
+        // 🔥 修复：应用分页（会自动显示第一页的项目）
+        applyListViewPagination();
+
+        console.log('✅ List View 搜索完成');
     }
 
     function clearListViewSearch() {
+        console.log('🧹 清除 List View 搜索');
+        
         window.listViewSearchTerm = '';
         window.listViewFilteredItems = [...window.listViewItems];
 
@@ -627,6 +636,13 @@
         // 重置到第一页
         window.listViewCurrentPage = 1;
         localStorage.setItem('spaceHSG_listView_page', 1);
+
+        // 🔥 隐藏空状态消息
+        const emptyState = document.getElementById('emptySearchState');
+        if (emptyState) {
+            emptyState.style.display = 'none';
+            console.log('✓ 隐藏空状态');
+        }
 
         // 应用分页
         applyListViewPagination();
@@ -645,6 +661,8 @@
 
         document.getElementById('searchClear')?.style.setProperty('display', 'none', 'important');
         document.getElementById('mobileSearchClear')?.style.setProperty('display', 'none', 'important');
+        
+        console.log('✅ List View 搜索已清除');
     }
 
     // 移除所有高亮
@@ -658,7 +676,11 @@
 
     // ================= 🔥 列表视图分页（最终修复版）=================
     function applyListViewPagination() {
+        console.log('📄 应用列表视图分页...');
+        console.log(`过滤后的项目数量: ${window.listViewFilteredItems ? window.listViewFilteredItems.length : 0}`);
+        
         if (!window.listViewFilteredItems || window.listViewFilteredItems.length === 0) {
+            console.warn('没有过滤后的项目，隐藏所有项');
             document.querySelectorAll('#listView .fm-list-item').forEach(item => {
                 item.style.display = 'none';
             });
@@ -668,6 +690,7 @@
 
         const totalItems = window.listViewFilteredItems.length;
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+        console.log(`总项目数: ${totalItems}, 总页数: ${totalPages}, 当前页: ${window.listViewCurrentPage}`);
 
         if (window.listViewCurrentPage < 1) window.listViewCurrentPage = 1;
         if (window.listViewCurrentPage > totalPages) window.listViewCurrentPage = totalPages || 1;
@@ -680,40 +703,63 @@
         // 显示当前页
         const startIndex = (window.listViewCurrentPage - 1) * ITEMS_PER_PAGE;
         const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+        console.log(`显示项目 ${startIndex} 到 ${endIndex-1} (索引)`);
 
         for (let i = startIndex; i < endIndex; i++) {
             if (window.listViewFilteredItems[i]?.element) {
                 window.listViewFilteredItems[i].element.style.display = 'grid';
+                console.log(`✓ 显示项目 ${i}: ${window.listViewFilteredItems[i].name}`);
+            } else {
+                console.warn(`✗ 项目 ${i} 不存在或没有 element`);
             }
         }
 
         // 更新分页控件
-        updatePaginationControls(totalItems, totalPages);
+        console.log('更新 List View 分页控件...');
+        updateListViewPaginationControls(totalItems, totalPages);
+        console.log('✅ 分页应用完成');
     }
 
-    // ================= 🔥 更新分页控件（统一版本）=================
-    function updatePaginationControls(totalItems, totalPages) {
+    // ================= 🔥 更新列表视图分页控件 =================
+    function updateListViewPaginationControls(totalItems, totalPages) {
+        console.log('📊 updateListViewPaginationControls 被调用:', totalItems, totalPages);
         const wrapper = document.getElementById('paginationWrapper');
         const info = document.getElementById('paginationInfo');
         const pagination = document.getElementById('pagination');
 
-        if (!wrapper || !info || !pagination) return;
+        if (!wrapper || !info || !pagination) {
+            console.warn('分页元素未找到');
+            return;
+        }
 
         if (totalItems <= ITEMS_PER_PAGE) {
+            console.log('项目数量不超过一页，隐藏分页');
             wrapper.style.display = 'none';
             return;
         }
 
+        console.log('显示分页控件');
         wrapper.style.display = 'flex';
 
         const start = (window.listViewCurrentPage - 1) * ITEMS_PER_PAGE + 1;
         const end = Math.min(window.listViewCurrentPage * ITEMS_PER_PAGE, totalItems);
         info.textContent = `Showing ${start}-${end} of ${totalItems} items`;
+        console.log(`分页信息: ${start}-${end} of ${totalItems}`);
 
         pagination.innerHTML = '';
 
         // 上一页
-        pagination.appendChild(createNavButton('prev', window.listViewCurrentPage === 1));
+        const prevBtn = createPaginationButton('prev', window.listViewCurrentPage === 1);
+        if (window.listViewCurrentPage > 1) {
+            prevBtn.onclick = (e) => {
+                e.preventDefault();
+                console.log('点击上一页');
+                window.listViewCurrentPage--;
+                localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
+                applyListViewPagination();
+            };
+        }
+        pagination.appendChild(prevBtn);
 
         // 第一页
         if (window.listViewCurrentPage > 2) {
@@ -722,7 +768,7 @@
 
         // 省略号
         if (window.listViewCurrentPage > 3) {
-            pagination.appendChild(createEllipsis());
+            pagination.appendChild(createEllipsisButton());
         }
 
         // 当前页前一页
@@ -740,7 +786,7 @@
 
         // 省略号
         if (window.listViewCurrentPage < totalPages - 2) {
-            pagination.appendChild(createEllipsis());
+            pagination.appendChild(createEllipsisButton());
         }
 
         // 最后一页
@@ -749,95 +795,30 @@
         }
 
         // 下一页
-        pagination.appendChild(createNavButton('next', window.listViewCurrentPage === totalPages));
-    }
-
-        // ================= 🔥 新增：更新列表视图分页控件 =================
-    function updateListViewPaginationControls(totalItems, totalPages) {
-        const paginationWrapper = document.getElementById('paginationWrapper');
-        const paginationInfo = document.getElementById('paginationInfo');
-        const pagination = document.getElementById('pagination');
-
-        if (!paginationWrapper || !paginationInfo || !pagination) return;
-
-        // 根据项目数量决定是否显示分页
-        if (totalItems <= ITEMS_PER_PAGE) {
-            paginationWrapper.style.display = 'none';
-            return;
-        }
-
-        paginationWrapper.style.display = 'flex';
-
-        // 更新分页信息
-        const start = (window.listViewCurrentPage - 1) * ITEMS_PER_PAGE + 1;
-        const end = Math.min(window.listViewCurrentPage * ITEMS_PER_PAGE, totalItems);
-        paginationInfo.textContent = `Showing ${start}-${end} of ${totalItems} items`;
-
-        // 生成分页按钮
-        pagination.innerHTML = '';
-
-        // 上一页
-        const prevButton = createPaginationButton('prev', window.listViewCurrentPage === 1);
-        prevButton.onclick = (e) => {
-            e.preventDefault();
-            if (window.listViewCurrentPage > 1) {
-                window.listViewCurrentPage--;
-                localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
-                applyListViewPagination();
-            }
-        };
-        pagination.appendChild(prevButton);
-
-        // 页码按钮
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, window.listViewCurrentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-        if (endPage - startPage + 1 < maxVisiblePages) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-
-        // 第一页
-        if (startPage > 1) {
-            pagination.appendChild(createPageButton(1, window.listViewCurrentPage === 1));
-            if (startPage > 2) {
-                pagination.appendChild(createEllipsisButton());
-            }
-        }
-
-        // 页码
-        for (let i = startPage; i <= endPage; i++) {
-            pagination.appendChild(createPageButton(i, window.listViewCurrentPage === i));
-        }
-
-        // 最后一页
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                pagination.appendChild(createEllipsisButton());
-            }
-            pagination.appendChild(createPageButton(totalPages, window.listViewCurrentPage === totalPages));
-        }
-
-        // 下一页
-        const nextButton = createPaginationButton('next', window.listViewCurrentPage === totalPages);
-        nextButton.onclick = (e) => {
-            e.preventDefault();
-            if (window.listViewCurrentPage < totalPages) {
+        const nextBtn = createPaginationButton('next', window.listViewCurrentPage === totalPages);
+        if (window.listViewCurrentPage < totalPages) {
+            nextBtn.onclick = (e) => {
+                e.preventDefault();
+                console.log('点击下一页');
                 window.listViewCurrentPage++;
                 localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
                 applyListViewPagination();
-            }
-        };
-        pagination.appendChild(nextButton);
+            };
+        }
+        pagination.appendChild(nextBtn);
+        
+        console.log('✅ List View 分页控件更新完成');
     }
 
-    // ================= 辅助函数 =================
+    // ================= 🔥 辅助函数区域（用于分页按钮）=================
     function createPageButton(pageNum, isActive = false) {
+        console.log(`创建页码按钮: ${pageNum}, 激活: ${isActive}`);
         const btn = document.createElement('li');
         btn.className = `fm-page-item ${isActive ? 'active' : ''}`;
         btn.innerHTML = `<a class="fm-page-link" href="#">${pageNum}</a>`;
         btn.onclick = (e) => {
             e.preventDefault();
+            console.log(`点击页码: ${pageNum}`);
             window.listViewCurrentPage = pageNum;
             localStorage.setItem('spaceHSG_listView_page', pageNum);
             applyListViewPagination();
@@ -855,6 +836,7 @@
 
     // 辅助函数：创建上一页/下一页按钮
     function createPaginationButton(type, isDisabled) {
+        console.log(`创建导航按钮: ${type}, 禁用: ${isDisabled}`);
         const button = document.createElement('li');
         button.className = `fm-page-item ${isDisabled ? 'disabled' : ''}`;
 
@@ -988,92 +970,8 @@
         pagination.appendChild(nextButton);
     }
 
-        // ================= 🔥 修复：显示列表视图指定页码（使用 fm-hidden 类）=================
-    function showListViewPage(page) {
-        if (!window.listViewFilteredItems || window.listViewFilteredItems.length === 0) return;
-
-        const startIndex = (page - 1) * ITEMS_PER_PAGE;
-        const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, window.listViewFilteredItems.length);
-
-        // 🔥 修复：先移除所有内联样式，再统一用类控制
-        document.querySelectorAll('#listView .fm-list-item').forEach(item => {
-            item.style.display = '';        // 清除内联样式
-            item.classList.add('fm-hidden'); // 全部隐藏
-        });
-
-        // 显示当前页的项目
-        for (let i = startIndex; i < endIndex; i++) {
-            if (window.listViewFilteredItems[i] && window.listViewFilteredItems[i].element) {
-                window.listViewFilteredItems[i].element.classList.remove('fm-hidden');
-            }
-        }
-
-        window.listViewCurrentPage = page;
-        console.log(`列表视图 - 第 ${page} 页, 显示 ${startIndex+1}-${endIndex} 项, 共 ${window.listViewFilteredItems.length} 项`);
-    }
-
-        // ================= 🔥 修改：显示列表视图指定页码（使用 fm-hidden 类）=================
-    function showListViewPage(page) {
-        if (!window.listViewFilteredItems || window.listViewFilteredItems.length === 0) return;
-
-        const startIndex = (page - 1) * ITEMS_PER_PAGE;
-        const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, window.listViewFilteredItems.length);
-
-        // 1. 先隐藏所有列表项 - 使用 fm-hidden 类
-        document.querySelectorAll('#listView .fm-list-item').forEach(item => {
-            item.classList.add('fm-hidden');
-            item.style.display = ''; // 移除内联样式，让 CSS 控制
-        });
-
-        // 2. 显示当前页的项目 - 移除 fm-hidden 类
-        for (let i = startIndex; i < endIndex; i++) {
-            if (window.listViewFilteredItems[i] && window.listViewFilteredItems[i].element) {
-                window.listViewFilteredItems[i].element.classList.remove('fm-hidden');
-            }
-        }
-
-        window.listViewCurrentPage = page;
-        console.log(`列表视图 - 第 ${page} 页, 显示 ${startIndex+1}-${endIndex} 项, 共 ${window.listViewFilteredItems.length} 项`);
-    }
 
 
-        // ================= 修复：清除列表视图搜索 =================
-    function clearListViewSearch() {
-        console.log('清除列表视图搜索');
-
-        window.listViewSearchTerm = '';
-        window.listViewFilteredItems = [...window.listViewItems];
-
-        // 清除保存的搜索词
-        localStorage.removeItem('spaceHSG_listView_search');
-
-        // 重置到第一页
-        window.listViewCurrentPage = 1;
-        localStorage.setItem('spaceHSG_listView_page', 1);
-
-        // 🔥🔥🔥 先隐藏所有项
-        document.querySelectorAll('#listView .fm-list-item').forEach(item => {
-            item.style.display = 'none';
-        });
-
-        // 然后应用分页显示第一页
-        applyListViewPagination();
-
-        // 移除高亮
-        removeAllHighlights();
-
-        // 移除搜索结果信息
-        document.getElementById('listViewSearchResults')?.remove();
-
-        // 清空搜索框
-        const searchInput = document.getElementById('searchInput');
-        const mobileSearchInput = document.getElementById('mobileSearchInput');
-        if (searchInput) searchInput.value = '';
-        if (mobileSearchInput) mobileSearchInput.value = '';
-
-        document.getElementById('searchClear')?.style.setProperty('display', 'none', 'important');
-        document.getElementById('mobileSearchClear')?.style.setProperty('display', 'none', 'important');
-    }
 
     // ================= 🔥 新增：列表视图搜索高亮 =================
     function highlightListViewSearch(searchTerm) {
@@ -1131,23 +1029,41 @@
 
     // ================= 🔥 新增：绑定列表视图搜索事件 =================
     function bindListViewSearch() {
+        console.log('🔧 绑定 List View 搜索事件');
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
 
         if (searchInput) {
-            // 移除原有的事件监听器
+            // 🔥 关键修复：移除 HTML 中的 onkeyup 属性，避免与 addEventListener 冲突
+            searchInput.removeAttribute('onkeyup');
+            
+            // 移除所有旧的事件监听器（通过克隆节点）
             const newSearchInput = searchInput.cloneNode(true);
             searchInput.parentNode.replaceChild(newSearchInput, searchInput);
 
-            // 添加新的事件监听器
+            // 确保克隆后也没有 onkeyup 属性
+            newSearchInput.removeAttribute('onkeyup');
             newSearchInput.id = 'searchInput';
+            
+            // 添加新的事件监听器
             newSearchInput.addEventListener('input', function() {
+                console.log('🔍 List View Search input changed:', this.value);
+                
                 const searchClear = document.getElementById('searchClear');
                 if (searchClear) {
                     searchClear.style.display = this.value ? 'block' : 'none';
                 }
 
-                if (isCurrentViewList()) {
+                if (this.value.trim() === '') {
+                    clearListViewSearch();
+                } else {
+                    performListViewSearch(this.value.trim());
+                }
+            });
+
+            newSearchInput.addEventListener('keyup', function(e) {
+                console.log('🔍 List View Search keyup:', e.key, this.value);
+                if (e.key === 'Enter') {
                     if (this.value.trim() === '') {
                         clearListViewSearch();
                     } else {
@@ -1156,22 +1072,13 @@
                 }
             });
 
-            newSearchInput.addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') {
-                    if (isCurrentViewList()) {
-                        if (this.value.trim() === '') {
-                            clearListViewSearch();
-                        } else {
-                            performListViewSearch(this.value.trim());
-                        }
-                    }
-                }
-            });
-
             // 恢复搜索词
             if (window.listViewSearchTerm) {
                 newSearchInput.value = window.listViewSearchTerm;
+                console.log('恢复搜索词:', window.listViewSearchTerm);
             }
+            
+            console.log('✅ List View 搜索事件绑定完成');
         }
 
         // 修复搜索清除按钮
@@ -1527,7 +1434,7 @@
 
             // 初始化列表视图
             setTimeout(() => {
-                initializeListViewFeatures();
+                window.initializeListViewFeatures();
             }, 50);
         } else {
             gridView.style.display = 'grid';
@@ -1537,7 +1444,7 @@
 
             // 初始化网格视图
             setTimeout(() => {
-                initializePaginationAndSearch();
+                window.initializePaginationAndSearch();
             }, 50);
         }
 
@@ -1586,7 +1493,7 @@
                     document.getElementById('viewList')?.classList.add('active');
 
                     // 重新初始化列表视图
-                    initializeListViewFeatures();
+                    window.initializeListViewFeatures();
 
                     // 恢复搜索和页码
                     if (searchTermToSave) {
@@ -1606,7 +1513,7 @@
                     document.getElementById('viewList')?.classList.remove('active');
 
                     // 重新初始化网格视图
-                    initializePaginationAndSearch();
+                    window.initializePaginationAndSearch();
 
                     // 恢复搜索和页码
                     if (searchTermToSave) {
@@ -1656,7 +1563,7 @@
                 console.log('刷新后重新初始化列表视图功能');
                 // initializeListViewFeatures() 会在 refreshFileListWithoutReload 中调用
             } else {
-                initializePaginationAndSearch();
+                window.initializePaginationAndSearch();
             }
         }, 100);
     }
@@ -1727,134 +1634,40 @@
             return;
         }
 
+        console.log('📄 更新网格视图分页');
+        
         const paginationWrapper = document.getElementById('paginationWrapper');
         const pagination = document.getElementById('pagination');
         const paginationInfo = document.getElementById('paginationInfo');
 
-        refreshItemsData();
+        // 🔥 修复：不调用 refreshItemsData，因为 filteredItems 已经在 performSearch 中设置好了
+        // refreshItemsData();
 
         if (!filteredItems || filteredItems.length === 0) {
+            console.log('没有过滤项，隐藏分页');
             if (paginationWrapper) paginationWrapper.style.display = 'none';
+            
+            // 🔥 确保隐藏所有网格项
+            document.querySelectorAll('#gridView .fm-grid-item').forEach(item => {
+                item.style.display = 'none';
+            });
             return;
         }
 
         const totalItems = filteredItems.length;
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-        const isListView = isCurrentViewList();
+        console.log(`总项数: ${totalItems}, 总页数: ${totalPages}`);
 
         if (totalPages <= 1) {
+            console.log('只有一页，隐藏分页控件');
             if (paginationWrapper) paginationWrapper.style.display = 'none';
-            // 显示所有项目
-            filteredItems.forEach(item => {
-                if (item && item.element) {
-                    if (isListView) {
-                        item.element.classList.remove('fm-hidden');
-                    } else {
-                        item.element.style.display = '';
-                    }
-                }
-            });
+            // 不需要在这里显示项目，调用者会处理
             return;
         }
 
-        // 显示分页控件
-        if (paginationWrapper) paginationWrapper.style.display = 'flex';
-
-        const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-        const end = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
-        if (paginationInfo) {
-            paginationInfo.textContent = `Showing ${start}-${end} of ${totalItems} items`;
-        }
-
-        // 生成分页按钮
-        if (pagination) {
-            pagination.innerHTML = '';
-
-            // 上一页
-            const prevButton = document.createElement('li');
-            prevButton.className = `fm-page-item ${currentPage === 1 ? 'disabled' : ''}`;
-            prevButton.innerHTML = `<a class="fm-page-link" href="#" aria-label="Previous"><i class="fas fa-chevron-left"></i></a>`;
-            prevButton.onclick = (e) => {
-                e.preventDefault();
-                if (currentPage > 1) {
-                    currentPage--;
-                    showPage(currentPage);
-                }
-            };
-            pagination.appendChild(prevButton);
-
-            // 页码按钮
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-
-            if (startPage > 1) {
-                const firstPageButton = document.createElement('li');
-                firstPageButton.className = 'fm-page-item';
-                firstPageButton.innerHTML = `<a class="fm-page-link" href="#">1</a>`;
-                firstPageButton.onclick = (e) => {
-                    e.preventDefault();
-                    currentPage = 1;
-                    showPage(currentPage);
-                };
-                pagination.appendChild(firstPageButton);
-
-                if (startPage > 2) {
-                    const ellipsis = document.createElement('li');
-                    ellipsis.className = 'fm-page-item disabled';
-                    ellipsis.innerHTML = `<span class="fm-page-link">...</span>`;
-                    pagination.appendChild(ellipsis);
-                }
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                const pageButton = document.createElement('li');
-                pageButton.className = `fm-page-item ${i === currentPage ? 'active' : ''}`;
-                pageButton.innerHTML = `<a class="fm-page-link" href="#">${i}</a>`;
-                pageButton.onclick = (e) => {
-                    e.preventDefault();
-                    currentPage = i;
-                    showPage(currentPage);
-                };
-                pagination.appendChild(pageButton);
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    const ellipsis = document.createElement('li');
-                    ellipsis.className = 'fm-page-item disabled';
-                    ellipsis.innerHTML = `<span class="fm-page-link">...</span>`;
-                    pagination.appendChild(ellipsis);
-                }
-
-                const lastPageButton = document.createElement('li');
-                lastPageButton.className = 'fm-page-item';
-                lastPageButton.innerHTML = `<a class="fm-page-link" href="#">${totalPages}</a>`;
-                lastPageButton.onclick = (e) => {
-                    e.preventDefault();
-                    currentPage = totalPages;
-                    showPage(currentPage);
-                };
-                pagination.appendChild(lastPageButton);
-            }
-
-            // 下一页
-            const nextButton = document.createElement('li');
-            nextButton.className = `fm-page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-            nextButton.innerHTML = `<a class="fm-page-link" href="#" aria-label="Next"><i class="fas fa-chevron-right"></i></a>`;
-            nextButton.onclick = (e) => {
-                e.preventDefault();
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    showPage(currentPage);
-                }
-            };
-            pagination.appendChild(nextButton);
-        }
+        // 调用 updatePaginationControls 来更新分页UI
+        console.log('调用 updatePaginationControls');
+        updatePaginationControls();
     }
 
     // ================= 显示页码内容（仅供网格视图使用）=================
@@ -1864,50 +1677,158 @@
             return;
         }
 
+        console.log(`📄 显示网格视图第 ${page} 页`);
         currentPage = page;
 
-        refreshItemsData();
+        // 🔥 修复：不调用 refreshItemsData，保持当前的 filteredItems
+        // refreshItemsData();
 
         if (!filteredItems || filteredItems.length === 0) {
+            console.log('没有过滤项，使用所有项');
             filteredItems = [...allItems];
         }
 
-        if (filteredItems.length === 0) return;
+        if (filteredItems.length === 0) {
+            console.log('没有项目可显示');
+            return;
+        }
 
         const startIndex = (page - 1) * ITEMS_PER_PAGE;
         const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredItems.length);
-        const isListView = isCurrentViewList();
+        console.log(`显示项目 ${startIndex} 到 ${endIndex-1} (索引)`);
 
-        // 1. 先隐藏所有项目
-        allItems.forEach(item => {
-            if (item && item.element) {
-                if (isListView) {
-                    item.element.classList.add('fm-hidden');
-                } else {
-                    item.element.style.display = 'none';
-                }
-            }
+        // 1. 先隐藏所有网格项目
+        document.querySelectorAll('#gridView .fm-grid-item').forEach(item => {
+            item.style.display = 'none';
         });
 
         // 2. 显示当前页的项目
         for (let i = startIndex; i < endIndex; i++) {
             if (filteredItems[i] && filteredItems[i].element) {
-                if (isListView) {
-                    filteredItems[i].element.classList.remove('fm-hidden');
-                } else {
-                    filteredItems[i].element.style.display = '';
-                }
+                filteredItems[i].element.style.display = '';
+                console.log(`✓ 显示: ${filteredItems[i].name}`);
             }
         }
 
-        // 3. 更新分页控件
-        updatePagination();
+        // 3. 更新分页控件（不会递归调用 showPage）
+        updatePaginationControls();
 
-        console.log(`Page ${page}: Showing items ${startIndex+1} to ${endIndex} of ${filteredItems.length} (${isListView ? 'List' : 'Grid'} View)`);
+        console.log(`✅ 第 ${page} 页显示完成`);
+    }
+    
+    // ================= 只更新分页控件UI，不改变显示 =================
+    function updatePaginationControls() {
+        const paginationWrapper = document.getElementById('paginationWrapper');
+        const pagination = document.getElementById('pagination');
+        const paginationInfo = document.getElementById('paginationInfo');
+
+        if (!paginationWrapper || !pagination || !paginationInfo) return;
+        
+        if (!filteredItems || filteredItems.length === 0) {
+            paginationWrapper.style.display = 'none';
+            return;
+        }
+
+        const totalItems = filteredItems.length;
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (totalPages <= 1) {
+            paginationWrapper.style.display = 'none';
+            return;
+        }
+
+        paginationWrapper.style.display = 'flex';
+
+        const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+        const end = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+        paginationInfo.textContent = `Showing ${start}-${end} of ${totalItems} items`;
+
+        // 生成分页按钮
+        pagination.innerHTML = '';
+
+        // 上一页
+        const prevButton = document.createElement('li');
+        prevButton.className = `fm-page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        prevButton.innerHTML = `<a class="fm-page-link" href="#" aria-label="Previous"><i class="fas fa-chevron-left"></i></a>`;
+        prevButton.onclick = (e) => {
+            e.preventDefault();
+            if (currentPage > 1) {
+                showPage(currentPage - 1);
+            }
+        };
+        pagination.appendChild(prevButton);
+
+        // 页码按钮
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        if (startPage > 1) {
+            const firstPageButton = document.createElement('li');
+            firstPageButton.className = 'fm-page-item';
+            firstPageButton.innerHTML = `<a class="fm-page-link" href="#">1</a>`;
+            firstPageButton.onclick = (e) => {
+                e.preventDefault();
+                showPage(1);
+            };
+            pagination.appendChild(firstPageButton);
+
+            if (startPage > 2) {
+                const ellipsis = document.createElement('li');
+                ellipsis.className = 'fm-page-item disabled';
+                ellipsis.innerHTML = `<span class="fm-page-link">...</span>`;
+                pagination.appendChild(ellipsis);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageButton = document.createElement('li');
+            pageButton.className = `fm-page-item ${i === currentPage ? 'active' : ''}`;
+            pageButton.innerHTML = `<a class="fm-page-link" href="#">${i}</a>`;
+            pageButton.onclick = (e) => {
+                e.preventDefault();
+                showPage(i);
+            };
+            pagination.appendChild(pageButton);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('li');
+                ellipsis.className = 'fm-page-item disabled';
+                ellipsis.innerHTML = `<span class="fm-page-link">...</span>`;
+                pagination.appendChild(ellipsis);
+            }
+
+            const lastPageButton = document.createElement('li');
+            lastPageButton.className = 'fm-page-item';
+            lastPageButton.innerHTML = `<a class="fm-page-link" href="#">${totalPages}</a>`;
+            lastPageButton.onclick = (e) => {
+                e.preventDefault();
+                showPage(totalPages);
+            };
+            pagination.appendChild(lastPageButton);
+        }
+
+        // 下一页
+        const nextButton = document.createElement('li');
+        nextButton.className = `fm-page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        nextButton.innerHTML = `<a class="fm-page-link" href="#" aria-label="Next"><i class="fas fa-chevron-right"></i></a>`;
+        nextButton.onclick = (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) {
+                showPage(currentPage + 1);
+            }
+        };
+        pagination.appendChild(nextButton);
     }
 
     // ================= 初始化分页和搜索（仅供网格视图使用）=================
-    function initializePaginationAndSearch() {
+    window.initializePaginationAndSearch = function() {
         // 🔥 如果是列表视图，不执行网格视图的分页逻辑
         if (isCurrentViewList()) {
             return;
@@ -1960,7 +1881,7 @@
 
         // 绑定搜索事件
         bindSearchEvents();
-    }
+    };
 
     // ================= 搜索功能（仅供网格视图使用）=================
     window.handleSearch = function(event) {
@@ -1986,6 +1907,8 @@
     };
 
     function performSearch(searchTerm) {
+        console.log('🔍 执行网格视图搜索:', searchTerm);
+        
         if (!searchTerm) {
             clearSearch();
             return;
@@ -1993,37 +1916,62 @@
 
         refreshItemsData();
 
+        // 🔥 修复：只过滤，不直接操作显示
         filteredItems = allItems.filter(item => {
             const itemName = item.name.toLowerCase();
             const shouldShow = itemName.includes(searchTerm);
-
-            const isListView = isCurrentViewList();
-
-            if (item.element) {
-                if (shouldShow) {
-                    if (isListView) {
-                        item.element.classList.remove('fm-hidden');
-                    } else {
-                        item.element.style.display = '';
-                    }
-                } else {
-                    if (isListView) {
-                        item.element.classList.add('fm-hidden');
-                    } else {
-                        item.element.style.display = 'none';
-                    }
-                }
-            }
             item.isVisible = shouldShow;
-
             return shouldShow;
         });
 
+        console.log(`找到 ${filteredItems.length} 个匹配项`);
+
+        // 🔥 修复：先隐藏所有项目
+        allItems.forEach(item => {
+            if (item.element) {
+                item.element.style.display = 'none';
+            }
+        });
+
+        // 如果没有匹配结果
+        if (filteredItems.length === 0) {
+            console.log('没有匹配结果，隐藏分页');
+            const paginationWrapper = document.getElementById('paginationWrapper');
+            if (paginationWrapper) paginationWrapper.style.display = 'none';
+            
+            // 显示空状态消息
+            const emptyState = document.getElementById('emptySearchState');
+            if (emptyState) emptyState.style.display = 'flex';
+            
+            showSearchResultsInfo(searchTerm, 0);
+            return;
+        }
+
+        // 隐藏空状态
+        const emptyState = document.getElementById('emptySearchState');
+        if (emptyState) emptyState.style.display = 'none';
+
+        // 高亮搜索结果
         highlightSearchMatches(searchTerm);
 
+        // 重置到第一页
         currentPage = 1;
 
+        // 更新分页（这会显示当前页的项目）
         updatePagination();
+
+        // 如果结果不超过一页，显示所有匹配项
+        if (filteredItems.length <= ITEMS_PER_PAGE) {
+            console.log('结果不超过一页，显示所有项');
+            filteredItems.forEach(item => {
+                if (item.element) {
+                    item.element.style.display = '';
+                }
+            });
+        } else {
+            // 否则只显示第一页
+            showPage(1);
+        }
 
         showSearchResultsInfo(searchTerm, filteredItems.length);
     }
@@ -2064,6 +2012,8 @@
             return;
         }
 
+        console.log('🧹 清除 Grid View 搜索');
+
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
         const mobileSearchInput = document.getElementById('mobileSearchInput');
@@ -2075,6 +2025,13 @@
         if (mobileSearchClear) mobileSearchClear.style.display = 'none';
 
         currentSearchTerm = '';
+
+        // 🔥 隐藏空状态消息
+        const emptyState = document.getElementById('emptySearchState');
+        if (emptyState) {
+            emptyState.style.display = 'none';
+            console.log('✓ 隐藏空状态');
+        }
 
         refreshItemsData();
 
@@ -2102,9 +2059,11 @@
         filteredItems = [...allItems];
         currentPage = 1;
 
-        initializePaginationAndSearch();
+        window.initializePaginationAndSearch();
 
         document.getElementById('searchResultsInfo')?.remove();
+        
+        console.log('✅ Grid View 搜索已清除');
     };
 
     function showSearchResultsInfo(searchTerm, resultCount) {
@@ -2140,33 +2099,56 @@
             return;
         }
 
+        console.log('🔧 绑定 Grid View 搜索事件');
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
 
         if (searchInput) {
-            searchInput.removeEventListener('input', handleSearchInput);
-            searchInput.addEventListener('input', handleSearchInput);
+            // 🔥 移除旧的事件监听器（通过克隆）
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            // 移除 onkeyup 属性，使用 addEventListener
+            newSearchInput.removeAttribute('onkeyup');
+            newSearchInput.id = 'searchInput';
+            
+            // 绑定 input 事件
+            newSearchInput.addEventListener('input', function() {
+                console.log('🔍 Grid View Search input changed:', this.value);
+                
+                const searchClear = document.getElementById('searchClear');
+                if (searchClear) {
+                    searchClear.style.display = this.value ? 'block' : 'none';
+                }
+
+                if (this.value.trim() === '') {
+                    clearSearch();
+                } else {
+                    const searchTerm = this.value.trim().toLowerCase();
+                    if (searchTerm !== currentSearchTerm) {
+                        performSearch(searchTerm);
+                    }
+                }
+            });
+            
+            // 绑定 keyup 事件（处理 Enter 键）
+            newSearchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const searchTerm = this.value.trim().toLowerCase();
+                    if (searchTerm) {
+                        performSearch(searchTerm);
+                    } else {
+                        clearSearch();
+                    }
+                }
+            });
 
             if (searchClear) {
-                searchClear.style.display = searchInput.value ? 'block' : 'none';
+                searchClear.style.display = newSearchInput.value ? 'block' : 'none';
                 searchClear.onclick = clearSearch;
             }
-        }
-    }
-
-    function handleSearchInput() {
-        const searchClear = document.getElementById('searchClear');
-        if (searchClear) {
-            searchClear.style.display = this.value ? 'block' : 'none';
-        }
-
-        if (this.value.trim() === '') {
-            clearSearch();
-        } else {
-            const searchTerm = this.value.trim().toLowerCase();
-            if (searchTerm !== currentSearchTerm) {
-                performSearch(searchTerm);
-            }
+            
+            console.log('✅ Grid View 搜索事件绑定完成');
         }
     }
 
@@ -2407,34 +2389,15 @@
 
         // ================= 新增：列表视图空搜索结果 =================
     function showListViewEmptyState(searchTerm) {
-        // 移除已有的空状态
-        const oldEmpty = document.getElementById('listViewEmptyState');
-        if (oldEmpty) oldEmpty.remove();
-
-        // 创建空状态元素
-        const emptyState = document.createElement('div');
-        emptyState.id = 'listViewEmptyState';
-        emptyState.className = 'fm-empty-search';
-        emptyState.style.display = 'flex';
-        emptyState.style.flexDirection = 'column';
-        emptyState.style.alignItems = 'center';
-        emptyState.style.padding = '40px 20px';
-
-        emptyState.innerHTML = `
-            <div class="fm-empty-search-icon">
-                <i class="fas fa-search"></i>
-            </div>
-            <div class="fm-empty-search-text">No matching files or folders found</div>
-            <div class="fm-empty-search-hint">Try different keywords or clear the search</div>
-            <button class="fm-btn fm-btn-secondary" onclick="clearListViewSearch()" style="margin-top: 16px;">
-                <i class="fas fa-times"></i> Clear Search
-            </button>
-        `;
-
-        // 插入到列表视图的末尾
-        const listView = document.getElementById('listView');
-        if (listView) {
-            listView.appendChild(emptyState);
+        console.log('📭 显示List View空状态:', searchTerm);
+        
+        // 直接使用HTML中已有的emptySearchState元素
+        const emptyState = document.getElementById('emptySearchState');
+        if (emptyState) {
+            emptyState.style.display = 'flex';
+            console.log('✅ 空状态已显示（使用HTML元素）');
+        } else {
+            console.warn('Empty search state element not found');
         }
     }
 </script>

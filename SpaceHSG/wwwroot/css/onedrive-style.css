@@ -1867,27 +1867,57 @@ a {
 
 /* ============== 空搜索状态样式 ============== */
 .fm-empty-search {
-    padding: 80px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 60px 20px;
+}
+
+.fm-empty-search-content {
     text-align: center;
+    max-width: 400px;
 }
 
 .fm-empty-search-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-    opacity: 0.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
     color: var(--text-secondary);
+    opacity: 0.4;
+}
+
+.fm-empty-search-icon svg {
+    width: 120px;
+    height: 120px;
 }
 
 .fm-empty-search-text {
-    font-size: 16px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
 }
 
 .fm-empty-search-hint {
     font-size: 14px;
     color: var(--text-secondary);
-    opacity: 0.8;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.fm-clear-search-btn {
+    margin-top: 8px;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.fm-clear-search-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* ============== 搜索结果标题样式 - 只在桌面显示 ============== */
@@ -2782,14 +2812,33 @@ a {
 
     /* 15. 空搜索状态优化 */
     .fm-empty-search {
-        padding: 40px 20px;
-        text-align: center;
+        min-height: 300px;
+        padding: 40px 16px;
     }
 
-    .fm-empty-search-icon {
-        font-size: 36px;
-        margin-bottom: 12px;
-        opacity: 0.2;
+    .fm-empty-search-content {
+        max-width: 100%;
+        padding: 0 16px;
+    }
+
+    .fm-empty-search-icon svg {
+        width: 80px;
+        height: 80px;
+    }
+
+    .fm-empty-search-text {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    .fm-empty-search-hint {
+        font-size: 13px;
+        margin-bottom: 20px;
+    }
+
+    .fm-clear-search-btn {
+        padding: 8px 20px;
+        font-size: 13px;
     }
 
     .fm-empty-search-text {

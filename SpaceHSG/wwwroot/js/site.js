@@ -1147,12 +1147,26 @@ function switchView(view) {
 
         // 切换到网格视图时清除选择
         clearSelection();
+
+        // 初始化网格视图的分页和搜索
+        setTimeout(() => {
+            if (typeof window.initializePaginationAndSearch === 'function') {
+                window.initializePaginationAndSearch();
+            }
+        }, 50);
     } else {
         if (gridView) gridView.style.display = 'none';
         if (listView) listView.style.display = 'flex';
         if (listBtn) listBtn.classList.add('active');
         if (gridBtn) gridBtn.classList.remove('active');
         localStorage.setItem('fileManagerView', 'list');
+
+        // 初始化列表视图的分页和搜索
+        setTimeout(() => {
+            if (typeof window.initializeListViewFeatures === 'function') {
+                window.initializeListViewFeatures();
+            }
+        }, 50);
     }
 }
 
