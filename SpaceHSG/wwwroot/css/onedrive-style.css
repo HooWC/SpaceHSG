@@ -1488,11 +1488,14 @@ a {
         position: absolute;
         left: 50%;
         top: 50%;
-        width: 6px;
-        height: 10px;
-        border: solid white;
-        border-width: 0 2px 2px 0;
-        transform: translate(-50%, -60%) rotate(45deg);
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        width: auto;
+        height: auto;
+        border: none;
+        background: none;
     }
 
 /* 网格视图选中状态 */
@@ -2667,7 +2670,7 @@ a {
         }
 
             .fm-grid-checkbox.checked::after {
-                content: '✓' !important;
+                content: '✓';
                 position: absolute;
                 left: 50%;
                 top: 50%;
@@ -2675,10 +2678,10 @@ a {
                 color: white;
                 font-size: 11px;
                 font-weight: bold;
-                width: auto !important;
-                height: auto !important;
-                border: none !important;
-                background: none !important;
+                width: auto;
+                height: auto;
+                border: none;
+                background: none;
             }
 
     /* 10. 视图切换按钮 */
