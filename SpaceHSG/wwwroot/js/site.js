@@ -32,17 +32,18 @@ window.debugPath = function() {
 
 // 初始化函数，需要在页面加载后调用
 function initializeFileManager(path, url) {
-    //console.log('===========================================');
-    //console.log('initializeFileManager called');
-    //console.log('  Raw path parameter:', path);
-    //console.log('  Raw path type:', typeof path);
-    //console.log('  Raw path length:', path ? path.length : 'null/undefined');
+    console.log('🚀 ========== initializeFileManager ==========');
+    console.log('📥 传入参数:');
+    console.log('  path:', path);
+    console.log('  path type:', typeof path);
+    console.log('  url:', url);
     
     // 同时检查URL参数
     const urlParams = new URLSearchParams(window.location.search);
     const urlPath = urlParams.get('path');
-    //console.log('  URL path parameter:', urlPath);
-    //console.log('===========================================');
+    console.log('🔍 URL参数:');
+    console.log('  URL path:', urlPath);
+    console.log('  完整URL:', window.location.href);
     
     // 确保 path 始终是字符串，优先使用传入的参数，如果为空则尝试从URL获取
     let finalPath = (path === null || path === undefined || path === 'null' || path === 'undefined' || path === '') ? '' : String(path);
@@ -50,17 +51,18 @@ function initializeFileManager(path, url) {
     // 如果传入的path为空，但URL中有path参数，使用URL中的path
     if (finalPath === '' && urlPath) {
         finalPath = urlPath;
-        //console.log('Using path from URL instead:', finalPath);
+        console.log('✓ 使用URL中的path');
     }
     
     currentPath = finalPath;
-    uploadUrl = url;
+    // 🔥 确保 uploadUrl 为绝对路径（兼容虚拟目录）
+    uploadUrl = (url && !url.startsWith('http') && !url.startsWith('/')) ? (window.appBasePath || '/').replace(/\/?$/, '/') + url.replace(/^\//, '') : (url || '');
     
-    //console.log('FINAL currentPath set to:', currentPath);
-    //console.log('currentPath type:', typeof currentPath);
-    //console.log('currentPath length:', currentPath.length);
-    //console.log('Is empty?:', currentPath === '');
-    //console.log('===========================================');
+    console.log('✅ 最终设置:');
+    console.log('  currentPath:', currentPath);
+    console.log('  uploadUrl:', uploadUrl);
+    console.log('  uploadUrl 是否有效:', uploadUrl ? '✓' : '✗');
+    console.log('==========================================');
 
     initThemeSystem();
 
@@ -69,6 +71,9 @@ function initializeFileManager(path, url) {
     if (savedView === 'list') {
         switchView('list');
     }
+    
+    // 🔥 确保上传功能在页面加载后设置
+    console.log('⏳ 等待DOM加载完成后设置上传功能');
 }
 
 // Elements - 这些在DOM加载后获取
@@ -409,48 +414,120 @@ function handleFilesWithStructure(filesWithStructure) {
 
 // Upload files (传统方式)
 function handleFiles(fileList) {
-    if (fileList.length === 0) return;
+    console.log('📤 ========== handleFiles ==========');
+    console.log('文件数量:', fileList.length);
+    
+    if (fileList.length === 0) {
+        console.warn('❌ 没有文件');
+        return;
+    }
+
+    // 🔥 上传前从 URL 同步当前路径，避免使用过期值
+    const urlParams = new URLSearchParams(window.location.search);
+    const pathFromUrl = urlParams.get('path') || '';
+    if (pathFromUrl !== currentPath) {
+        console.log('📂 从 URL 同步路径:', pathFromUrl);
+        currentPath = pathFromUrl;
+    }
+
+    console.log('📋 文件列表:');
+    for (let i = 0; i < fileList.length; i++) {
+        console.log(`  ${i + 1}. ${fileList[i].name} (${fileList[i].size} bytes)`);
+    }
 
     const formData = new FormData();
     for (let i = 0; i < fileList.length; i++) {
         formData.append('files', fileList[i]);
     }
 
+    console.log('🌐 上传配置:');
+    console.log('  currentPath:', currentPath);
+    console.log('  uploadUrl:', uploadUrl);
+    
+    if (!uploadUrl) {
+        console.error('❌ uploadUrl 为空，无法上传');
+        showToast('Upload Error', 'Upload URL not configured', 'error');
+        return;
+    }
+    
+    const uploadFullUrl = uploadUrl + (uploadUrl.indexOf('?') >= 0 ? '&' : '?') + 'path=' + encodeURIComponent(currentPath);
+    console.log('  完整URL:', uploadFullUrl);
+
     if (uploadProgress) uploadProgress.classList.add('active');
     if (uploadProgressBar) uploadProgressBar.style.width = '0%';
 
-    fetch(uploadUrl + '?path=' + encodeURIComponent(currentPath), {
+    console.log('📤 开始上传...');
+    fetch(uploadFullUrl, {
         method: 'POST',
         body: formData
     })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📥 收到响应:', response.status, response.statusText);
+            return response.json();
+        })
         .then(data => {
+            console.log('📦 响应数据:', data);
             if (uploadProgress) uploadProgress.classList.remove('active');
 
             if (data.success) {
-                // 上传成功，立即刷新页面
-                window.location.reload();
+                console.log('✅ 上传成功，刷新页面');
+                showToast('Success', 'Files uploaded successfully', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
             } else {
+                console.error('❌ 上传失败:', data.message);
                 showToast('Upload Failed', data.message, 'error');
             }
         })
         .catch(error => {
             if (uploadProgress) uploadProgress.classList.remove('active');
-            console.error('Upload error:', error);
+            console.error('❌ Upload error:', error);
             showToast('Upload Error', 'Failed to upload files', 'error');
         });
 }
 
+// 🔥 点击 Upload 时调用：同步路径并打开文件选择
+window.triggerUpload = function () {
+    var urlParams = new URLSearchParams(window.location.search);
+    var pathFromUrl = urlParams.get('path') || '';
+    currentPath = pathFromUrl;
+    console.log('📤 triggerUpload: 当前路径已同步为', currentPath);
+    var el = document.getElementById('fileInput');
+    if (el) {
+        el.click();
+        console.log('✓ 已触发文件选择');
+    } else {
+        console.error('❌ 未找到 #fileInput');
+        showToast('Upload Error', 'File input not found', 'error');
+    }
+};
+
 // Handle file input change
 function setupFileInput() {
-    if (!fileInput) return;
+    console.log('🔧 setupFileInput 被调用');
+    var inputEl = document.getElementById('fileInput');
+    if (!inputEl) {
+        console.error('❌ fileInput 不存在！');
+        fileInput = null;
+        return;
+    }
+    fileInput = inputEl;
 
+    // 🔥 克隆并替换以移除旧监听，避免重复绑定
+    var newInput = inputEl.cloneNode(true);
+    inputEl.parentNode.replaceChild(newInput, inputEl);
+    fileInput = newInput;
+
+    console.log('✓ fileInput 找到，绑定 change 事件');
     fileInput.addEventListener('change', function (e) {
+        console.log('📂 文件输入 change 触发，数量:', this.files.length);
         if (this.files.length > 0) {
             handleFiles(this.files);
         }
         this.value = '';
     });
+    console.log('✅ setupFileInput 完成');
 }
 
 // Create folder
@@ -636,26 +713,40 @@ function escapeHtml(text) {
 
 // ============== 批量选择功能 ==============
 
-// 切换项目选择状态
+// 路径规范化，与 Index 一致，用于同步 selectedItemPaths（Grid↔List 切视图勾选保持）
+function normPath(p) {
+    if (p == null || p === undefined) return '';
+    return String(p).replace(/\//g, '\\').trim();
+}
+
+// 切换项目选择状态（列表视图）
 function toggleItemSelection(checkboxContainer) {
     const listItem = checkboxContainer.closest('.fm-list-item');
     const checkbox = checkboxContainer.querySelector('.fm-list-checkbox');
     const itemPath = listItem.dataset.path;
+    const pathNorm = normPath(itemPath);
 
     if (listItem.classList.contains('selected')) {
-        // 取消选择
         listItem.classList.remove('selected');
-        checkbox.classList.remove('checked');
+        if (checkbox) checkbox.classList.remove('checked');
         selectedItems.delete(itemPath);
+        if (window.selectedItemPaths) window.selectedItemPaths.delete(pathNorm);
     } else {
-        // 选择
         listItem.classList.add('selected');
-        checkbox.classList.add('checked');
+        if (checkbox) checkbox.classList.add('checked');
         selectedItems.add(itemPath);
+        if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
+        window.selectedItemPaths.add(pathNorm);
     }
 
-    // 更新批量操作按钮状态
-    updateBatchActions();
+    if (typeof window.updateBatchActionsVisibility === 'function') {
+        window.updateBatchActionsVisibility();
+    } else {
+        updateBatchActions();
+    }
+    if (typeof window.updateSelectAllCheckbox === 'function') {
+        window.updateSelectAllCheckbox();
+    }
 }
 
 // 更新批量操作按钮状态
@@ -666,38 +757,44 @@ function updateBatchActions() {
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     const selectAllHeader = document.getElementById('selectAllHeader');
 
-    if (selectedItems.size > 0) {
+    // 🔥 只统计当前可见视图，避免重复计数
+    const listViewEl = document.getElementById('listView');
+    const listVisible = listViewEl && window.getComputedStyle(listViewEl).display !== 'none';
+    const gridSelected = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
+    const listSelected = document.querySelectorAll('#listView .fm-list-checkbox.selected').length;
+    const countFromDom = listVisible ? listSelected : gridSelected;
+
+    if (countFromDom > 0) {
         // 显示批量操作区域
         if (batchActions) batchActions.style.display = 'flex';
 
-        // 更新选中数量
-        if (selectedNumber) selectedNumber.textContent = selectedItems.size;
+        // 更新选中数量（与删除时使用的数量一致）
+        if (selectedNumber) selectedNumber.textContent = countFromDom;
 
         // 更新批量删除按钮文本
         if (batchDeleteBtn) {
-            batchDeleteBtn.title = `Delete ${selectedItems.size} selected item(s)`;
+            batchDeleteBtn.title = `Delete ${countFromDom} selected item(s)`;
         }
     } else {
         // 隐藏批量操作区域
         if (batchActions) batchActions.style.display = 'none';
     }
 
-    // 更新全选复选框状态（列表视图）
+    // 更新全选复选框状态（列表视图，以 DOM 为准）
     if (selectAllCheckbox) {
-        const listItems = document.querySelectorAll('.fm-list-item');
-        const checkedItems = document.querySelectorAll('.fm-list-item.selected');
-
-        if (listItems.length === checkedItems.length && listItems.length > 0) {
+        const listCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox');
+        const listSelected = document.querySelectorAll('#listView .fm-list-checkbox.selected');
+        if (listCheckboxes.length === listSelected.length && listCheckboxes.length > 0) {
             selectAllCheckbox.classList.add('checked');
         } else {
             selectAllCheckbox.classList.remove('checked');
         }
     }
 
-    // 更新全选头部的状态
+    // 更新全选头部的状态（也用 DOM 数量）
     if (selectAllHeader) {
         const totalItems = getTotalItemsCount();
-        const isAllSelected = selectedItems.size === totalItems && totalItems > 0;
+        const isAllSelected = countFromDom === totalItems && totalItems > 0;
 
         if (isAllSelected) {
             selectAllHeader.classList.add('checked');
@@ -716,55 +813,74 @@ function getTotalItemsCount() {
 
 // 全选/取消全选（适用于列表视图和网格视图）
 function toggleSelectAll() {
-    const selectAllHeader = document.getElementById('selectAllHeader');
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const listItems = document.querySelectorAll('.fm-list-item');
-    const gridItems = document.querySelectorAll('.fm-grid-item');
+    // 🔥 只按当前视图的 DOM 判断是否已全选，不依赖 header 的 class，避免误判导致只能按一次
+    const listViewEl = document.getElementById('listView');
+    const isListVisible = listViewEl && window.getComputedStyle(listViewEl).display !== 'none';
 
-    // 确定当前是否是全选状态
+    const gridCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox');
+    const listCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox');
+    const gridSelected = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
+    const listSelected = document.querySelectorAll('#listView .fm-list-checkbox.selected').length;
+
     let isCurrentlyAllSelected = false;
-    if (selectAllHeader) {
-        isCurrentlyAllSelected = selectAllHeader.classList.contains('checked');
-    } else if (selectAllCheckbox) {
-        isCurrentlyAllSelected = selectAllCheckbox.classList.contains('checked');
+    if (isListVisible && listCheckboxes.length > 0) {
+        isCurrentlyAllSelected = listSelected === listCheckboxes.length;
+    } else if (gridCheckboxes.length > 0) {
+        isCurrentlyAllSelected = gridSelected === gridCheckboxes.length;
     }
 
     if (isCurrentlyAllSelected) {
-        // 取消全选
         clearSelection();
     } else {
-        // 全选
         selectAllItems();
     }
 
-    // 更新批量操作按钮
-    updateBatchActions();
+    if (typeof window.updateBatchActionsVisibility === 'function') {
+        window.updateBatchActionsVisibility();
+    } else {
+        updateBatchActions();
+    }
 }
 
 // 选择所有项目（列表视图和网格视图）
 function selectAllItems() {
     selectedItems.clear();
+    if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
+    else window.selectedItemPaths.clear();
 
-    // 选择所有列表视图项目
-    document.querySelectorAll('.fm-list-item').forEach(item => {
-        const itemPath = item.dataset.path;
-        item.classList.add('selected');
-        const checkbox = item.querySelector('.fm-list-checkbox');
-        if (checkbox) checkbox.classList.add('checked');
-        if (itemPath) selectedItems.add(itemPath);
-    });
+    // 🔥 只操作当前可见视图，避免统计时拿到 0
+    const listViewEl = document.getElementById('listView');
+    const isListVisible = listViewEl && window.getComputedStyle(listViewEl).display !== 'none';
 
-    // 选择所有网格视图项目
-    document.querySelectorAll('.fm-grid-item').forEach(gridItem => {
-        gridItem.classList.add('selected');
-        const checkbox = gridItem.querySelector('.fm-grid-checkbox');
-        if (checkbox) checkbox.classList.add('checked');
-
-        const itemPath = gridItem.dataset.path;
-        if (itemPath) {
-            selectedItems.add(itemPath);
-        }
-    });
+    if (isListVisible) {
+        document.querySelectorAll('#listView .fm-list-item').forEach(item => {
+            const itemPath = item.dataset.path;
+            item.classList.add('selected');
+            const checkbox = item.querySelector('.fm-list-checkbox');
+            if (checkbox) {
+                checkbox.classList.add('checked');
+                checkbox.classList.add('selected');
+            }
+            if (itemPath) {
+                selectedItems.add(itemPath);
+                window.selectedItemPaths.add(normPath(itemPath));
+            }
+        });
+    } else {
+        document.querySelectorAll('#gridView .fm-grid-item').forEach(gridItem => {
+            gridItem.classList.add('selected');
+            const checkbox = gridItem.querySelector('.fm-grid-checkbox');
+            if (checkbox) {
+                checkbox.classList.add('checked');
+                checkbox.classList.add('selected');
+            }
+            const itemPath = gridItem.dataset.path;
+            if (itemPath) {
+                selectedItems.add(itemPath);
+                window.selectedItemPaths.add(normPath(itemPath));
+            }
+        });
+    }
 
     // 更新全选头部状态
     const selectAllHeader = document.getElementById('selectAllHeader');
@@ -772,20 +888,30 @@ function selectAllItems() {
 
     if (selectAllHeader) {
         selectAllHeader.classList.add('checked');
+        selectAllHeader.classList.add('selected');
     }
     if (selectAllCheckbox) {
         selectAllCheckbox.classList.add('checked');
+    }
+
+    // 确保批量操作栏显示（优先用 Index 的按当前视图统计）
+    if (typeof window.updateBatchActionsVisibility === 'function') {
+        window.updateBatchActionsVisibility();
+    } else {
+        updateBatchActions();
     }
 }
 
 // 批量删除选中的项目
 function batchDelete() {
-    if (selectedItems.size === 0) {
+    const gridSel = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
+    const listSel = document.querySelectorAll('#listView .fm-list-checkbox.selected').length;
+    const count = gridSel + listSel;
+    if (count === 0) {
         showToast('No Selection', 'Please select items to delete', 'warning');
         return;
     }
-
-    showBatchDeleteModal();
+    showBatchDeleteModal(count);
 }
 
 // 显示批量删除确认模态框
@@ -830,12 +956,26 @@ function hideDeleteModal() {
     deleteItemPath = '';
 }
 
-function showBatchDeleteModal() {
+function showBatchDeleteModal(count) {
+    console.log('📋 [site.js] 显示批量删除模态框，传入数量:', count);
     const modal = document.getElementById('batchDeleteModal');
     const countElement = document.getElementById('batchDeleteCount');
 
+    // 🔥 始终以 DOM 为准：未传 count 时从当前视图统计，避免显示 1 而非实际选中数
+    let actualCount = count;
+    if (actualCount === undefined || actualCount === null || actualCount < 0) {
+        const gridSel = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
+        const listSel = document.querySelectorAll('#listView .fm-list-checkbox.selected').length;
+        actualCount = gridSel + listSel;
+        console.log('📋 从 DOM 统计数量:', actualCount, '(grid:', gridSel, ', list:', listSel, ')');
+    }
+    console.log('📋 实际使用数量:', actualCount);
+
     if (countElement) {
-        countElement.textContent = selectedItems.size;
+        countElement.textContent = actualCount;
+        console.log('✓ 更新 batchDeleteCount 为:', actualCount);
+    } else {
+        console.warn('⚠️ 未找到 batchDeleteCount 元素');
     }
 
     if (modal) {
@@ -843,6 +983,9 @@ function showBatchDeleteModal() {
         setTimeout(() => {
             modal.classList.add('active');
         }, 10);
+        console.log('✓ 模态框已显示');
+    } else {
+        console.warn('⚠️ 未找到 batchDeleteModal 元素');
     }
 }
 
@@ -857,8 +1000,9 @@ function hideBatchDeleteModal() {
     }
 }
 
-// 确认批量删除
-function confirmBatchDelete() {
+// 确认批量删除 - 🔥 这个函数已被 Index.cshtml 中的版本替代
+// 保留此函数以防向后兼容，但不再导出到 window
+function confirmBatchDelete_old() {
     const batchDeleteBtn = document.getElementById('batchDeleteBtn');
     const originalContent = batchDeleteBtn.innerHTML;
     batchDeleteBtn.innerHTML = '<span class="fm-btn-icon">⏳</span> Deleting...';
@@ -917,6 +1061,7 @@ function confirmBatchDelete() {
 // 清除所有选择
 function clearSelection() {
     selectedItems.clear();
+    if (window.selectedItemPaths) window.selectedItemPaths.clear();
 
     // 移除所有选中的样式（列表视图）
     document.querySelectorAll('.fm-list-item.selected').forEach(item => {
@@ -927,21 +1072,23 @@ function clearSelection() {
     document.querySelectorAll('.fm-grid-item.selected').forEach(gridItem => {
         gridItem.classList.remove('selected');
 
-        // 修复：清除网格视图的checkbox选中状态
         const checkbox = gridItem.querySelector('.fm-grid-checkbox');
         if (checkbox) {
             checkbox.classList.remove('checked');
+            checkbox.classList.remove('selected');
         }
     });
 
     // 移除列表视图的checkbox选中状态
-    document.querySelectorAll('.fm-list-checkbox.checked').forEach(checkbox => {
+    document.querySelectorAll('.fm-list-checkbox.checked, .fm-list-checkbox.selected').forEach(checkbox => {
         checkbox.classList.remove('checked');
+        checkbox.classList.remove('selected');
     });
 
     // 移除网格视图的checkbox选中状态（额外确保）
-    document.querySelectorAll('.fm-grid-checkbox.checked').forEach(checkbox => {
+    document.querySelectorAll('.fm-grid-checkbox.checked, .fm-grid-checkbox.selected').forEach(checkbox => {
         checkbox.classList.remove('checked');
+        checkbox.classList.remove('selected');
     });
 
     // 更新全选复选框
@@ -1150,13 +1297,13 @@ function switchView(view) {
         localStorage.setItem('spaceHSG_viewMode', 'grid');
         console.log('✅ Grid View 已保存到 localStorage');
 
-        // 切换到网格视图时清除选择
-        clearSelection();
-
-        // 初始化网格视图的分页和搜索
+        // 初始化网格视图的分页和搜索，然后按路径恢复选中状态
         setTimeout(() => {
             if (typeof window.initializePaginationAndSearch === 'function') {
                 window.initializePaginationAndSearch();
+            }
+            if (typeof window.applySelectionToCurrentView === 'function') {
+                window.applySelectionToCurrentView();
             }
         }, 50);
     } else {
@@ -1169,11 +1316,21 @@ function switchView(view) {
         localStorage.setItem('spaceHSG_viewMode', 'list');
         console.log('✅ List View 已保存到 localStorage');
 
-        // 初始化列表视图的分页和搜索
+        // 初始化列表视图的分页和搜索，然后按路径恢复选中状态
         setTimeout(() => {
             if (typeof window.initializeListViewFeatures === 'function') {
                 window.initializeListViewFeatures();
             }
+            // 🔥 Grid→List：强制按 list 应用选中，避免 isCurrentViewList() 时机问题
+            if (typeof window.applySelectionToCurrentView === 'function') {
+                window.applySelectionToCurrentView('list');
+            }
+            // 🔥 再延迟应用一次，确保 list DOM 与 checkbox 绑定完成后再恢复勾选
+            setTimeout(function() {
+                if (typeof window.applySelectionToCurrentView === 'function') {
+                    window.applySelectionToCurrentView('list');
+                }
+            }, 120);
         }, 50);
     }
 }
@@ -1217,16 +1374,23 @@ function showDeleteModalFromElement(button) {
 
 // ============== 页面加载完成后初始化 ==============
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('📦 ========== DOMContentLoaded ==========');
     console.log('File Manager Initializing...');
 
     // 初始化DOM元素
     initDomElements();
+    console.log('✓ DOM元素已初始化');
+    console.log('  dropOverlay:', dropOverlay ? '✓' : '✗');
+    console.log('  fileInput:', fileInput ? '✓' : '✗');
+    console.log('  uploadProgress:', uploadProgress ? '✓' : '✗');
 
     // 设置拖拽功能
     setupDragAndDrop();
+    console.log('✓ 拖拽功能已设置');
 
     // 设置文件输入
     setupFileInput();
+    console.log('✓ 文件输入已设置');
 
     // 设置其他事件监听器
     document.addEventListener('keydown', function (e) {
@@ -1273,23 +1437,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function toggleGridItemSelection(gridItem, checkbox) {
     const itemPath = gridItem.dataset.path;
-    const itemName = gridItem.dataset.name;
-    const itemType = gridItem.dataset.type;
+    const pathNorm = normPath(itemPath);
 
     if (gridItem.classList.contains('selected')) {
-        // 取消选择
         gridItem.classList.remove('selected');
         if (checkbox) checkbox.classList.remove('checked');
         selectedItems.delete(itemPath);
+        if (window.selectedItemPaths) window.selectedItemPaths.delete(pathNorm);
     } else {
-        // 选择
         gridItem.classList.add('selected');
         if (checkbox) checkbox.classList.add('checked');
         selectedItems.add(itemPath);
+        if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
+        window.selectedItemPaths.add(pathNorm);
     }
 
-    // 更新批量操作按钮状态
-    updateBatchActions();
+    if (typeof window.updateBatchActionsVisibility === 'function') {
+        window.updateBatchActionsVisibility();
+    } else {
+        updateBatchActions();
+    }
+    if (typeof window.updateSelectAllCheckbox === 'function') {
+        window.updateSelectAllCheckbox();
+    }
 }
 
 function reattachGridEvents() {
@@ -1344,7 +1514,8 @@ window.hideDeleteModal = hideDeleteModal;
 window.batchDelete = batchDelete;
 window.showBatchDeleteModal = showBatchDeleteModal;
 window.hideBatchDeleteModal = hideBatchDeleteModal;
-window.confirmBatchDelete = confirmBatchDelete;
+// 🔥 不再导出 confirmBatchDelete，使用 Index.cshtml 中的版本
+// window.confirmBatchDelete = confirmBatchDelete;
 window.showLogoutModal = showLogoutModal;
 window.hideLogoutModal = hideLogoutModal;
 window.confirmLogout = confirmLogout;

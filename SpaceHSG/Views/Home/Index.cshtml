@@ -44,7 +44,7 @@
                     </div>
                 }
 
-                <button id="uploadBtn" class="fm-btn fm-btn-primary" onclick="document.getElementById('fileInput').click()">
+                <button id="uploadBtn" class="fm-btn fm-btn-primary" onclick="typeof triggerUpload === 'function' ? triggerUpload() : document.getElementById('fileInput') && document.getElementById('fileInput').click()">
                     <span class="fm-btn-icon"><i class="fas fa-upload"></i></span>
                     Upload
                 </button>
@@ -86,8 +86,7 @@
                 <input type="text"
                        class="fm-search-input"
                        id="mobileSearchInput"
-                       placeholder="Search files and folders..."
-                       onkeyup="handleMobileSearch(event)">
+                       placeholder="Search files and folders...">
                 <button class="fm-search-clear" id="mobileSearchClear" onclick="clearMobileSearch()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -446,6 +445,11 @@
     window.listViewCurrentPage = 1;
     window.listViewSearchTerm = '';
 
+    // ================= 跨视图选中状态（按 path 同步 Grid / List）=================
+    if (typeof window.selectedItemPaths === 'undefined') {
+        window.selectedItemPaths = new Set();
+    }
+
     // ================= 页面加载初始化 =================
     document.addEventListener('DOMContentLoaded', function() {
         // ========== 设置全局用户信息 ==========
@@ -454,11 +458,21 @@
         window.userRole = '@(ViewBag.UserRole ?? "User")';
 
         const relativePath = '@(ViewBag.RelativePath ?? "")';
+        // 🔥 使用 Url.Content 确保上传地址在虚拟目录下也正确
+        const uploadActionUrl = '@(Url.Content("~/Home/Upload"))';
 
         if (typeof initializeFileManager === 'function') {
-            initializeFileManager(relativePath, '@Url.Action("Upload", "Home")');
+            initializeFileManager(relativePath, uploadActionUrl);
         } else {
             showToast('Error', 'InitializeFileManager function not found!', 'error');
+        }
+
+        // 🔥 上传功能：在 initializeFileManager 之后重新绑定，确保 currentPath/uploadUrl 已设置
+        if (typeof initDomElements === 'function') {
+            initDomElements();
+        }
+        if (typeof setupFileInput === 'function') {
+            setupFileInput();
         }
 
         restoreViewMode();
@@ -523,9 +537,10 @@
 
         window.listViewItems = [];
         listItems.forEach((item, index) => {
-            // 🔥 关键：移除 fm-hidden 类，使用内联样式控制显示
+            // 🔥 关键：移除 fm-hidden 类，初始化时隐藏所有项
             item.classList.remove('fm-hidden');
-            item.style.display = 'none';
+            item.classList.add('fm-page-hidden');
+            item.classList.remove('fm-page-visible');
 
             window.listViewItems.push({
                 element: item,
@@ -560,10 +575,39 @@
             applyListViewPagination();
         }
 
+        bindListViewCheckboxes(); // 🔥 只在此处绑定一次，分页内不再重复绑定
         bindListViewSearch();
+        // 🔥 先按 path 恢复选中，再更新全选/批量栏状态
+        if (typeof window.applySelectionToCurrentView === 'function') {
+            window.applySelectionToCurrentView('list');
+        }
         updateSelectAllCheckbox();
         console.log('✅ 列表视图初始化完成');
     };
+
+    // ================= 🔥 绑定列表视图checkbox事件 =================
+    function bindListViewCheckboxes() {
+        console.log('🔧 绑定列表视图checkbox事件');
+        
+        // 绑定所有列表项的checkbox
+        const checkboxes = document.querySelectorAll('#listView .fm-list-checkbox');
+        console.log(`找到 ${checkboxes.length} 个checkbox`);
+        
+        checkboxes.forEach((checkbox, index) => {
+            // 移除旧的事件监听器
+            const newCheckbox = checkbox.cloneNode(true);
+            checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+            
+            // 添加新的点击事件
+            newCheckbox.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log(`✅ Checkbox ${index + 1} 被点击`);
+                window.toggleListItemSelection(this);
+            });
+        });
+        
+        console.log('✅ Checkbox事件绑定完成');
+    }
 
 
         // ================= 🔥 完全重写：列表视图搜索 =================
@@ -582,15 +626,21 @@
         localStorage.setItem('spaceHSG_listView_search', searchTerm);
 
         // 过滤项目 - 只保留名称包含搜索词的项目
+        console.log('📋 开始过滤，总项目数:', window.listViewItems?.length || 0);
         window.listViewFilteredItems = window.listViewItems.filter(item => {
-            return item.name.toLowerCase().includes(searchTerm);
+            const matches = item.name.toLowerCase().includes(searchTerm);
+            if (matches) {
+                console.log(`  ✓ 匹配: ${item.name}`);
+            }
+            return matches;
         });
 
-        console.log(`找到 ${window.listViewFilteredItems.length} 个匹配项目`);
+        console.log(`🔍 找到 ${window.listViewFilteredItems.length} 个匹配项目`);
 
         // 🔥🔥🔥 关键修复：先隐藏所有列表项
         document.querySelectorAll('#listView .fm-list-item').forEach(item => {
-            item.style.display = 'none';
+            item.classList.add('fm-page-hidden');
+            item.classList.remove('fm-page-visible');
         });
 
         // 如果没有匹配的项目
@@ -681,9 +731,10 @@
         console.log(`过滤后的项目数量: ${window.listViewFilteredItems ? window.listViewFilteredItems.length : 0}`);
         
         if (!window.listViewFilteredItems || window.listViewFilteredItems.length === 0) {
-            console.warn('没有过滤后的项目，隐藏所有项');
+            console.warn('❌ 没有过滤后的项目，隐藏所有项');
             document.querySelectorAll('#listView .fm-list-item').forEach(item => {
-                item.style.display = 'none';
+                item.classList.add('fm-page-hidden');
+                item.classList.remove('fm-page-visible');
             });
             document.getElementById('paginationWrapper')?.style.setProperty('display', 'none', 'important');
             return;
@@ -696,28 +747,41 @@
         if (window.listViewCurrentPage < 1) window.listViewCurrentPage = 1;
         if (window.listViewCurrentPage > totalPages) window.listViewCurrentPage = totalPages || 1;
 
-        // 隐藏所有项
-        document.querySelectorAll('#listView .fm-list-item').forEach(item => {
-            item.style.display = 'none';
+        // 🔥 先隐藏所有项 - 使用CSS类控制
+        console.log('🚫 隐藏所有列表项');
+        document.querySelectorAll('#listView .fm-list-item').forEach((item, idx) => {
+            item.classList.add('fm-page-hidden');
+            item.classList.remove('fm-page-visible');
         });
 
         // 显示当前页
         const startIndex = (window.listViewCurrentPage - 1) * ITEMS_PER_PAGE;
         const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
-        console.log(`显示项目 ${startIndex} 到 ${endIndex-1} (索引)`);
+        console.log(`📄 显示项目 ${startIndex} 到 ${endIndex-1} (索引)`);
+        console.log(`📱 设备宽度: ${window.innerWidth}px`);
+        console.log(`📱 当前在第 ${window.listViewCurrentPage} 页，共 ${totalPages} 页`);
 
         for (let i = startIndex; i < endIndex; i++) {
             if (window.listViewFilteredItems[i]?.element) {
-                window.listViewFilteredItems[i].element.style.display = 'grid';
-                console.log(`✓ 显示项目 ${i}: ${window.listViewFilteredItems[i].name}`);
+                const elem = window.listViewFilteredItems[i].element;
+                // 🔥 使用CSS类控制显示
+                elem.classList.remove('fm-page-hidden');
+                elem.classList.add('fm-page-visible');
+                
+                console.log(`✅ 显示项目 ${i}: ${window.listViewFilteredItems[i].name}`);
             } else {
-                console.warn(`✗ 项目 ${i} 不存在或没有 element`);
+                console.warn(`❌ 项目 ${i} 不存在或没有 element`);
             }
         }
+        
+        console.log(`✅ 分页显示完成：显示了 ${endIndex - startIndex} 个项目`);
 
         // 更新分页控件
         console.log('更新 List View 分页控件...');
         updateListViewPaginationControls(totalItems, totalPages);
+        
+        // 🔥 不再在此处调用 bindListViewCheckboxes()，避免覆盖 applySelectionToCurrentView 刚设置的 .selected（Grid→List 勾选同步）
+        
         console.log('✅ 分页应用完成');
     }
 
@@ -752,13 +816,23 @@
         // 上一页
         const prevBtn = createPaginationButton('prev', window.listViewCurrentPage === 1);
         if (window.listViewCurrentPage > 1) {
-            prevBtn.onclick = (e) => {
+            // 🔥 使用 addEventListener，支持触摸事件
+            prevBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                console.log('点击上一页');
+                e.stopPropagation();
+                console.log('🖱️ 点击上一页');
                 window.listViewCurrentPage--;
                 localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
                 applyListViewPagination();
-            };
+            });
+            prevBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📱 触摸上一页');
+                window.listViewCurrentPage--;
+                localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
+                applyListViewPagination();
+            });
         }
         pagination.appendChild(prevBtn);
 
@@ -798,13 +872,23 @@
         // 下一页
         const nextBtn = createPaginationButton('next', window.listViewCurrentPage === totalPages);
         if (window.listViewCurrentPage < totalPages) {
-            nextBtn.onclick = (e) => {
+            // 🔥 使用 addEventListener，支持触摸事件
+            nextBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                console.log('点击下一页');
+                e.stopPropagation();
+                console.log('🖱️ 点击下一页');
                 window.listViewCurrentPage++;
                 localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
                 applyListViewPagination();
-            };
+            });
+            nextBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📱 触摸下一页');
+                window.listViewCurrentPage++;
+                localStorage.setItem('spaceHSG_listView_page', window.listViewCurrentPage);
+                applyListViewPagination();
+            });
         }
         pagination.appendChild(nextBtn);
         
@@ -817,13 +901,29 @@
         const btn = document.createElement('li');
         btn.className = `fm-page-item ${isActive ? 'active' : ''}`;
         btn.innerHTML = `<a class="fm-page-link" href="#">${pageNum}</a>`;
-        btn.onclick = (e) => {
+        
+        // 🔥 使用 addEventListener 代替 onclick，更可靠
+        btn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log(`点击页码: ${pageNum}`);
+            e.stopPropagation();
+            console.log(`🖱️ 点击页码按钮: ${pageNum}`);
+            console.log(`📱 当前设备宽度: ${window.innerWidth}px`);
+            window.listViewCurrentPage = pageNum;
+            localStorage.setItem('spaceHSG_listView_page', pageNum);
+            console.log(`🔄 准备应用分页，当前页: ${window.listViewCurrentPage}`);
+            applyListViewPagination();
+        });
+        
+        // 🔥 添加触摸事件支持（手机端）
+        btn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`📱 触摸页码按钮: ${pageNum}`);
             window.listViewCurrentPage = pageNum;
             localStorage.setItem('spaceHSG_listView_page', pageNum);
             applyListViewPagination();
-        };
+        });
+        
         return btn;
     }
 
@@ -1211,80 +1311,152 @@
         }
     }
 
-    // ================= 切换列表项选择 =================
+    // 路径规范化，便于 Grid/List 一致比较（在 toggle 里也使用）
+    function normPath(p) {
+        if (!p) return '';
+        return String(p).replace(/\//g, '\\').trim();
+    }
+
+    // ================= 切换列表项选择（同步到 selectedItemPaths）=================
     window.toggleListItemSelection = function(checkboxElement) {
         if (!checkboxElement) return;
+        const listItem = checkboxElement.closest('.fm-list-item');
+        if (!listItem || !listItem.dataset.path) return;
+
+        const path = normPath(listItem.dataset.path);
+        if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
 
         checkboxElement.classList.toggle('selected');
-
-        const listItem = checkboxElement.closest('.fm-list-item');
-        if (listItem) {
-            if (checkboxElement.classList.contains('selected')) {
-                listItem.classList.add('selected');
-            } else {
-                listItem.classList.remove('selected');
-            }
+        if (checkboxElement.classList.contains('selected')) {
+            listItem.classList.add('selected');
+            window.selectedItemPaths.add(path);
+        } else {
+            listItem.classList.remove('selected');
+            window.selectedItemPaths.delete(path);
         }
 
         updateBatchActionsVisibility();
         updateSelectAllCheckbox();
     };
 
-    // ================= 切换网格项选择 =================
+    // ================= 切换网格项选择（同步到 selectedItemPaths）=================
     window.toggleGridItemSelection = function(checkboxElement) {
         if (!checkboxElement) return;
+        const gridItem = checkboxElement.closest('.fm-grid-item');
+        if (!gridItem || !gridItem.dataset.path) return;
+
+        const path = normPath(gridItem.dataset.path);
+        if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
 
         checkboxElement.classList.toggle('selected');
-
-        const gridItem = checkboxElement.closest('.fm-grid-item');
-        if (gridItem) {
-            if (checkboxElement.classList.contains('selected')) {
-                gridItem.classList.add('selected');
-            } else {
-                gridItem.classList.remove('selected');
-            }
+        if (checkboxElement.classList.contains('selected')) {
+            gridItem.classList.add('selected');
+            window.selectedItemPaths.add(path);
+        } else {
+            gridItem.classList.remove('selected');
+            window.selectedItemPaths.delete(path);
         }
 
         updateBatchActionsVisibility();
         updateSelectAllCheckbox();
     };
 
-    // ================= 切换全选 =================
+    // 判断 path 是否在选中集合中（兼容多种格式）
+    function pathMatchesSelection(itemPath, selectionSet) {
+        if (!itemPath) return false;
+        var n = normPath(itemPath);
+        var raw = String(itemPath).trim();
+        return selectionSet.has(n) || selectionSet.has(raw) || selectionSet.has(itemPath);
+    }
+
+    // ================= 切换视图后按 path 恢复选中状态 =================
+    // forceView: 可选 'list' | 'grid'，指定时不再依赖 isCurrentViewList()，避免 Grid→List 切换时误判
+    window.applySelectionToCurrentView = function(forceView) {
+        if (!window.selectedItemPaths || window.selectedItemPaths.size === 0) return;
+
+        var selectionSet = new Set();
+        window.selectedItemPaths.forEach(function(p) {
+            if (!p) return;
+            var s = String(p);
+            var n = normPath(p);
+            selectionSet.add(n);
+            selectionSet.add(s.trim());
+            if (s !== n) selectionSet.add(s);
+        });
+
+        var isList = (forceView === 'list' || forceView === 'grid') ? (forceView === 'list') : isCurrentViewList();
+        if (isList) {
+            document.querySelectorAll('#listView .fm-list-item').forEach(function(item) {
+                var path = item.dataset.path;
+                var cb = item.querySelector('.fm-list-checkbox');
+                if (!cb) return;
+                var isSelected = pathMatchesSelection(path, selectionSet);
+                if (isSelected) {
+                    cb.classList.add('selected');
+                    item.classList.add('selected');
+                } else {
+                    cb.classList.remove('selected');
+                    item.classList.remove('selected');
+                }
+            });
+        } else {
+            document.querySelectorAll('#gridView .fm-grid-item').forEach(function(item) {
+                var path = item.dataset.path;
+                var cb = item.querySelector('.fm-grid-checkbox');
+                if (!cb) return;
+                var isSelected = pathMatchesSelection(path, selectionSet);
+                if (isSelected) {
+                    cb.classList.add('selected');
+                    item.classList.add('selected');
+                } else {
+                    cb.classList.remove('selected');
+                    item.classList.remove('selected');
+                }
+            });
+        }
+        updateBatchActionsVisibility();
+        updateSelectAllCheckbox();
+    };
+
+    // ================= 切换全选（同步 selectedItemPaths）=================
     window.toggleSelectAll = function() {
         const isListView = isCurrentViewList();
         let allCheckboxes;
         let allSelected = false;
 
         if (isListView) {
-            allCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox-container .fm-list-checkbox');
+            allCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox');
         } else {
-            allCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox-container .fm-grid-checkbox');
+            allCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox');
         }
 
-        // 检查是否全部已选中
         allSelected = Array.from(allCheckboxes).every(cb => cb.classList.contains('selected'));
+        if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
 
-        // 切换选择状态
-        allCheckboxes.forEach(checkbox => {
-            if (allSelected) {
+        if (allSelected) {
+            allCheckboxes.forEach(checkbox => {
                 checkbox.classList.remove('selected');
                 const item = checkbox.closest(isListView ? '.fm-list-item' : '.fm-grid-item');
-                if (item) item.classList.remove('selected');
-            } else {
+                if (item) {
+                    item.classList.remove('selected');
+                    if (item.dataset.path) window.selectedItemPaths.delete(item.dataset.path);
+                }
+            });
+        } else {
+            allCheckboxes.forEach(checkbox => {
                 checkbox.classList.add('selected');
                 const item = checkbox.closest(isListView ? '.fm-list-item' : '.fm-grid-item');
-                if (item) item.classList.add('selected');
-            }
-        });
+                if (item) {
+                    item.classList.add('selected');
+                    if (item.dataset.path) window.selectedItemPaths.add(item.dataset.path);
+                }
+            });
+        }
 
-        // 更新全选按钮状态
         const selectAllHeader = document.getElementById('selectAllHeader');
         if (selectAllHeader) {
-            if (!allSelected) {
-                selectAllHeader.classList.add('selected');
-            } else {
-                selectAllHeader.classList.remove('selected');
-            }
+            if (!allSelected) selectAllHeader.classList.add('selected');
+            else selectAllHeader.classList.remove('selected');
         }
 
         updateBatchActionsVisibility();
@@ -1297,11 +1469,14 @@
         let selectedCheckboxes;
 
         if (isListView) {
-            allCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox-container .fm-list-checkbox');
-            selectedCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox-container .fm-list-checkbox.selected');
+            // 🔥 修复：简化选择器
+            allCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox');
+            selectedCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox.selected');
+            console.log(`  全部checkboxes: ${allCheckboxes.length}, 选中: ${selectedCheckboxes.length}`);
         } else {
-            allCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox-container .fm-grid-checkbox');
-            selectedCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox-container .fm-grid-checkbox.selected');
+            allCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox');
+            selectedCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox.selected');
+            console.log(`  全部checkboxes: ${allCheckboxes.length}, 选中: ${selectedCheckboxes.length}`);
         }
 
         const selectAllHeader = document.getElementById('selectAllHeader');
@@ -1333,11 +1508,22 @@
     function updateBatchActionsVisibility() {
         const isListView = isCurrentViewList();
         let selectedCount = 0;
+        
+        console.log('🔍 检查选中项，当前视图:', isListView ? 'List' : 'Grid');
 
         if (isListView) {
-            selectedCount = document.querySelectorAll('#listView .fm-list-checkbox-container .fm-list-checkbox.selected').length;
+            // 🔥 修复：直接查询checkbox，不要嵌套太深
+            const checkboxes = document.querySelectorAll('#listView .fm-list-checkbox.selected');
+            selectedCount = checkboxes.length;
+            console.log(`List View: 找到 ${selectedCount} 个选中的checkbox`);
+            checkboxes.forEach((cb, i) => {
+                const item = cb.closest('.fm-list-item');
+                console.log(`  ${i+1}. ${item?.dataset?.name || '未知'}`);
+            });
         } else {
-            selectedCount = document.querySelectorAll('#gridView .fm-grid-checkbox-container .fm-grid-checkbox.selected').length;
+            const checkboxes = document.querySelectorAll('#gridView .fm-grid-checkbox.selected');
+            selectedCount = checkboxes.length;
+            console.log(`Grid View: 找到 ${selectedCount} 个选中的checkbox`);
         }
 
         const batchActions = document.getElementById('batchActions');
@@ -1347,20 +1533,39 @@
         if (selectedCount > 0) {
             if (batchActions) batchActions.style.display = 'flex';
             if (selectedNumber) selectedNumber.textContent = selectedCount;
+            console.log('✅ 显示批量操作按钮，选中:', selectedCount);
         } else {
             if (batchActions) batchActions.style.display = 'none';
+            console.log('❌ 隐藏批量操作按钮');
         }
 
         // 绑定批量删除按钮事件
-        if (batchDeleteBtn && selectedCount > 0) {
+        if (batchDeleteBtn) {
             batchDeleteBtn.onclick = function() {
-                const count = selectedCount;
-                if (typeof showBatchDeleteModal === 'function') {
-                    showBatchDeleteModal(count);
+                // 🔥 重要：重新获取最新的选中数量
+                const currentIsListView = isCurrentViewList();
+                let currentSelectedCount = 0;
+                
+                if (currentIsListView) {
+                    currentSelectedCount = document.querySelectorAll('#listView .fm-list-checkbox.selected').length;
+                } else {
+                    currentSelectedCount = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
+                }
+                
+                console.log('🗑️ 批量删除按钮被点击，当前选中数量:', currentSelectedCount);
+                
+                if (currentSelectedCount > 0 && typeof showBatchDeleteModal === 'function') {
+                    showBatchDeleteModal(currentSelectedCount);
+                } else {
+                    console.warn('没有选中项目或函数不存在');
+                    showToast('Warning', 'Please select items to delete', 'warning');
                 }
             };
         }
     }
+
+    // 🔥 暴露给 site.js：全选/批量栏用同一套逻辑
+    window.updateBatchActionsVisibility = updateBatchActionsVisibility;
 
     // ================= 判断当前是否为列表视图 =================
     function isCurrentViewList() {
@@ -1749,6 +1954,9 @@
 
         // 3. 更新分页控件（不会递归调用 showPage）
         updatePaginationControls();
+        
+        // 4. 🔥 重新绑定当前页的checkbox
+        bindGridViewCheckboxes();
 
         console.log(`✅ 第 ${page} 页显示完成`);
     }
@@ -1918,7 +2126,34 @@
 
         // 绑定搜索事件
         bindSearchEvents();
+        
+        // 绑定Grid View checkbox事件
+        bindGridViewCheckboxes();
     };
+
+    // ================= 🔥 绑定网格视图checkbox事件 =================
+    function bindGridViewCheckboxes() {
+        console.log('🔧 绑定网格视图checkbox事件');
+        
+        // 绑定所有网格项的checkbox
+        const checkboxes = document.querySelectorAll('#gridView .fm-grid-checkbox');
+        console.log(`找到 ${checkboxes.length} 个checkbox`);
+        
+        checkboxes.forEach((checkbox, index) => {
+            // 移除旧的事件监听器
+            const newCheckbox = checkbox.cloneNode(true);
+            checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+            
+            // 添加新的点击事件
+            newCheckbox.addEventListener('click', function(e) {
+                e.stopPropagation();
+                console.log(`✅ Grid Checkbox ${index + 1} 被点击`);
+                window.toggleGridItemSelection(this);
+            });
+        });
+        
+        console.log('✅ Grid Checkbox事件绑定完成');
+    }
 
     // ================= 搜索功能（仅供网格视图使用）=================
     window.handleSearch = function(event) {
@@ -2191,74 +2426,96 @@
 
     // ================= 移动端搜索函数 =================
     function setupMobileSearchSync() {
+        console.log('🔧 设置手机搜索同步');
         const mobileInput = document.getElementById('mobileSearchInput');
         const desktopInput = document.getElementById('searchInput');
 
-        if (mobileInput && desktopInput) {
-            mobileInput.removeEventListener('input', handleMobileInput);
-            mobileInput.addEventListener('input', handleMobileInput);
+        if (mobileInput) {
+            // 🔥 移除HTML中的onkeyup属性
+            mobileInput.removeAttribute('onkeyup');
+            
+            // 移除旧的事件监听器（通过克隆）
+            const newMobileInput = mobileInput.cloneNode(true);
+            mobileInput.parentNode.replaceChild(newMobileInput, mobileInput);
+            newMobileInput.removeAttribute('onkeyup');
+            newMobileInput.id = 'mobileSearchInput';
+            
+            // 绑定input事件
+            newMobileInput.addEventListener('input', function(e) {
+                const searchValue = this.value;
+                console.log('📱 手机搜索输入:', searchValue);
+                console.log('📱 设备宽度:', window.innerWidth + 'px');
+                console.log('📱 当前视图:', isCurrentViewList() ? 'List View' : 'Grid View');
+                
+                const desktopInput = document.getElementById('searchInput');
+                if (desktopInput) {
+                    desktopInput.value = searchValue;
+                    console.log('✓ 同步到桌面搜索框');
+                }
+
+                const mobileClear = document.getElementById('mobileSearchClear');
+                if (mobileClear) {
+                    mobileClear.style.display = searchValue ? 'block' : 'none';
+                }
+
+                if (searchValue.trim() === '') {
+                    if (isCurrentViewList()) {
+                        console.log('📱 清除 List View 搜索');
+                        clearListViewSearch();
+                    } else {
+                        console.log('📱 清除 Grid View 搜索');
+                        clearSearch();
+                    }
+                } else {
+                    const searchTerm = searchValue.trim().toLowerCase();
+                    if (isCurrentViewList()) {
+                        console.log('📱 执行 List View 搜索:', searchTerm);
+                        console.log('📱 List View 项目总数:', window.listViewItems?.length || 0);
+                        performListViewSearch(searchTerm);
+                    } else {
+                        console.log('📱 执行 Grid View 搜索:', searchTerm);
+                        performSearch(searchTerm);
+                    }
+                }
+            });
+            
+            // 绑定keyup事件（处理Enter键）
+            newMobileInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const searchTerm = this.value.trim().toLowerCase();
+                    console.log('📱 Enter键搜索:', searchTerm);
+                    
+                    if (searchTerm === '') {
+                        if (isCurrentViewList()) {
+                            clearListViewSearch();
+                        } else {
+                            clearSearch();
+                        }
+                    } else {
+                        if (isCurrentViewList()) {
+                            performListViewSearch(searchTerm);
+                        } else {
+                            performSearch(searchTerm);
+                        }
+                    }
+                }
+            });
+            
+            console.log('✅ 手机搜索事件绑定完成');
+        } else {
+            console.warn('⚠️ 未找到手机搜索输入框 (mobileSearchInput)');
         }
 
         const mobileClear = document.getElementById('mobileSearchClear');
         if (mobileClear) {
             mobileClear.onclick = clearMobileSearch;
+            console.log('✓ 手机清除按钮绑定完成');
         }
     }
 
-    function handleMobileInput() {
-        const desktopInput = document.getElementById('searchInput');
-        if (desktopInput) {
-            desktopInput.value = this.value;
-        }
-
-        const mobileClear = document.getElementById('mobileSearchClear');
-        if (mobileClear) {
-            mobileClear.style.display = this.value ? 'block' : 'none';
-        }
-
-        if (this.value.trim() === '') {
-            if (isCurrentViewList()) {
-                clearListViewSearch();
-            } else {
-                clearSearch();
-            }
-        } else {
-            const searchTerm = this.value.trim().toLowerCase();
-            if (isCurrentViewList()) {
-                performListViewSearch(searchTerm);
-            } else {
-                performSearch(searchTerm);
-            }
-        }
-    }
-
-    window.handleMobileSearch = function(event) {
-        if (event.key === 'Enter' || event.type === 'keyup' || event.type === 'input') {
-            const mobileInput = document.getElementById('mobileSearchInput');
-            const desktopInput = document.getElementById('searchInput');
-
-            if (mobileInput && desktopInput) {
-                desktopInput.value = mobileInput.value;
-
-                const mobileClear = document.getElementById('mobileSearchClear');
-                if (mobileClear) {
-                    mobileClear.style.display = mobileInput.value ? 'block' : 'none';
-                }
-
-                if (isCurrentViewList()) {
-                    if (mobileInput.value.trim() === '') {
-                        clearListViewSearch();
-                    } else {
-                        performListViewSearch(mobileInput.value.trim());
-                    }
-                } else {
-                    handleSearch({ key: 'Enter', target: desktopInput });
-                }
-            }
-        }
-    };
 
     window.clearMobileSearch = function() {
+        console.log('🧹 清除手机搜索');
         const mobileInput = document.getElementById('mobileSearchInput');
         const desktopInput = document.getElementById('searchInput');
 
@@ -2269,8 +2526,10 @@
         if (mobileClear) mobileClear.style.display = 'none';
 
         if (isCurrentViewList()) {
+            console.log('清除 List View 搜索');
             clearListViewSearch();
         } else {
+            console.log('清除 Grid View 搜索');
             clearSearch();
         }
     };
@@ -2375,12 +2634,17 @@
 
     // ================= 批量删除模态框 =================
     window.showBatchDeleteModal = function(count) {
+        console.log('📋 显示批量删除模态框，数量:', count);
         const modal = document.getElementById('batchDeleteModal');
         const countSpan = document.getElementById('batchDeleteCount');
-        if (countSpan) countSpan.textContent = count;
+        if (countSpan) {
+            countSpan.textContent = count;
+            console.log('✓ 更新删除数量显示:', count);
+        }
         if (modal) {
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('active'), 10);
+            console.log('✓ 模态框已显示');
         }
     };
 
@@ -2394,11 +2658,129 @@
         }
     };
 
-    window.confirmBatchDelete = function() {
-        if (typeof deleteSelectedItems === 'function') {
-            deleteSelectedItems();
-        }
+    window.confirmBatchDelete = async function() {
+        console.log('🗑️🗑️🗑️ [confirmBatchDelete] 开始批量删除');
+        console.log('📍 函数来源: Index.cshtml (window.confirmBatchDelete)');
+        
         hideBatchDeleteModal();
+        
+        const isListView = isCurrentViewList();
+        console.log(`📋 当前视图: ${isListView ? 'List View' : 'Grid View'}`);
+        
+        let selectedCheckboxes;
+        
+        if (isListView) {
+            selectedCheckboxes = document.querySelectorAll('#listView .fm-list-checkbox.selected');
+            console.log(`🔍 List View 选择器: #listView .fm-list-checkbox.selected`);
+        } else {
+            selectedCheckboxes = document.querySelectorAll('#gridView .fm-grid-checkbox.selected');
+            console.log(`🔍 Grid View 选择器: #gridView .fm-grid-checkbox.selected`);
+        }
+        
+        console.log(`✅ 找到 ${selectedCheckboxes.length} 个选中的checkbox`);
+        
+        if (selectedCheckboxes.length === 0) {
+            console.error('❌ 没有选中的项目');
+            showToast('Error', 'No items selected', 'error');
+            return;
+        }
+        
+        const itemsToDelete = [];
+        selectedCheckboxes.forEach((checkbox, idx) => {
+            const item = checkbox.closest(isListView ? '.fm-list-item' : '.fm-grid-item');
+            console.log(`  Checkbox ${idx + 1}:`);
+            console.log(`    - Element:`, checkbox);
+            console.log(`    - Closest item:`, item);
+            
+            if (item && item.dataset.path) {
+                const deleteItem = {
+                    path: item.dataset.path,
+                    name: item.dataset.name,
+                    element: item
+                };
+                itemsToDelete.push(deleteItem);
+                console.log(`    ✓ 添加到删除列表: ${deleteItem.name} (${deleteItem.path})`);
+            } else {
+                console.warn(`    ✗ 无效项目或缺少 data-path`);
+            }
+        });
+        
+        console.log(`📦 要删除的项目列表 (${itemsToDelete.length} 项):`, itemsToDelete);
+        
+        if (itemsToDelete.length === 0) {
+            console.error('❌ 没有有效的项目可删除');
+            showToast('Error', 'No valid items to delete', 'error');
+            return;
+        }
+        
+        // 显示加载提示
+        showToast('Deleting', `Deleting ${itemsToDelete.length} item(s)...`, 'info');
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const item of itemsToDelete) {
+            try {
+                // 🔥🔥🔥 关键修复：直接使用 item.path，不要拼接 currentPath！
+                // item.path 已经是完整的相对路径（例如 "IT\New folder\file.xlsx"）
+                const url = buildAppUrl('Home/Delete') + '?path=' + encodeURIComponent(item.path);
+                
+                console.log(`🌐 删除请求: ${item.name}`);
+                console.log(`   项目路径 (item.path): ${item.path}`);
+                console.log(`   完整URL: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log(`   响应状态: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`   响应内容:`, result);
+                    
+                    if (result.success) {
+                        successCount++;
+                        console.log(`   ✅ 删除成功: ${item.name}`);
+                        // 从DOM中移除
+                        if (item.element) {
+                            item.element.remove();
+                            console.log(`   ✓ 已从DOM移除`);
+                        }
+                    } else {
+                        failCount++;
+                        console.error(`   ❌ 删除失败: ${item.name} -`, result.message);
+                    }
+                } else {
+                    failCount++;
+                    const errorText = await response.text();
+                    console.error(`   ❌ HTTP错误: ${response.statusText}`, errorText);
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`   ❌ 异常: ${item.name}`, error);
+            }
+        }
+        
+        // 显示结果
+        if (successCount > 0 && failCount === 0) {
+            showToast('Success', `Successfully deleted ${successCount} item(s)`, 'success');
+        } else if (successCount > 0 && failCount > 0) {
+            showToast('Partial Success', `Deleted ${successCount} item(s), ${failCount} failed`, 'warning');
+        } else {
+            showToast('Error', `Failed to delete ${failCount} item(s)`, 'error');
+        }
+        
+        // 清除选择并刷新
+        clearSelection();
+        
+        // 刷新页面
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
     };
 
     // ================= 导航函数 =================
