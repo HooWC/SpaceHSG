@@ -14,17 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userInfo) {
             try {
                 const user = JSON.parse(userInfo);
-                console.log('Found user info in localStorage:', user);
                 
                 // checking session
                 const response = await fetch(checkSessionUrl);
                 const result = await response.json();
                 
                 if (result.isLoggedIn) {
-                    console.log('Session is valid, redirecting to home...');
                     window.location.href = homeUrl;
                 } else {
-                    console.log('Session expired, clearing localStorage');
                     localStorage.removeItem('spaceHSG_user');
                 }
             } catch (error) {
@@ -53,8 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const usernameSent = user.trim();
             const passwordLength = pass ? pass.length : 0;
-            console.log('[Login] Sending request:', { username: usernameSent, passwordLength, loginUrl });
-            console.log('[Login] Body username value (encoded):', encodeURIComponent(usernameSent));
 
             try {
                 const response = await fetch(loginUrl, {
@@ -64,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const result = await response.json();
-                console.log('[Login] Response:', { success: result.success, message: result.message, detail: result.detail });
 
                 // ========== FIRST: 先检查是否失败 ==========
                 if (!result.success) {
@@ -87,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 
                 localStorage.setItem('spaceHSG_user', JSON.stringify(userInfo));
-                console.log('User info saved to localStorage:', userInfo);
                 
                 if (typeof showToast === 'function') {
                     showToast('Success', `Welcome, ${userInfo.displayName}! (${userInfo.department})`, 'success');
@@ -99,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             } catch (err) {
-                console.error('AJAX Failed Request:', err);
                 if (typeof showToast === 'function') {
                     showToast('Network Error', 'Network request failed. Please check your connection.', 'error');
                 }

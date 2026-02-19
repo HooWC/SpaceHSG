@@ -18,32 +18,15 @@ function buildAppUrl(path) {
 
 // 调试函数 - 在浏览器控制台输入 debugPath() 来检查当前路径
 window.debugPath = function() {
-    //console.log('===========================================');
-    //console.log('DEBUG PATH INFO:');
-    //console.log('  currentPath:', currentPath);
-    //console.log('  currentPath type:', typeof currentPath);
-    //console.log('  currentPath length:', currentPath ? currentPath.length : 'null/undefined');
-    //console.log('  Is empty string?:', currentPath === '');
-    //console.log('  window.location.href:', window.location.href);
-    //console.log('  window.location.search:', window.location.search);
-    //console.log('===========================================');
     return currentPath;
 };
 
 // 初始化函数，需要在页面加载后调用
 function initializeFileManager(path, url) {
-    console.log('🚀 ========== initializeFileManager ==========');
-    console.log('📥 传入参数:');
-    console.log('  path:', path);
-    console.log('  path type:', typeof path);
-    console.log('  url:', url);
     
     // 同时检查URL参数
     const urlParams = new URLSearchParams(window.location.search);
     const urlPath = urlParams.get('path');
-    console.log('🔍 URL参数:');
-    console.log('  URL path:', urlPath);
-    console.log('  完整URL:', window.location.href);
     
     // 确保 path 始终是字符串，优先使用传入的参数，如果为空则尝试从URL获取
     let finalPath = (path === null || path === undefined || path === 'null' || path === 'undefined' || path === '') ? '' : String(path);
@@ -51,18 +34,11 @@ function initializeFileManager(path, url) {
     // 如果传入的path为空，但URL中有path参数，使用URL中的path
     if (finalPath === '' && urlPath) {
         finalPath = urlPath;
-        console.log('✓ 使用URL中的path');
     }
     
     currentPath = finalPath;
-    // 🔥 确保 uploadUrl 为绝对路径（兼容虚拟目录）
+    // 确保 uploadUrl 为绝对路径（兼容虚拟目录）
     uploadUrl = (url && !url.startsWith('http') && !url.startsWith('/')) ? (window.appBasePath || '/').replace(/\/?$/, '/') + url.replace(/^\//, '') : (url || '');
-    
-    console.log('✅ 最终设置:');
-    console.log('  currentPath:', currentPath);
-    console.log('  uploadUrl:', uploadUrl);
-    console.log('  uploadUrl 是否有效:', uploadUrl ? '✓' : '✗');
-    console.log('==========================================');
 
     initThemeSystem();
 
@@ -71,9 +47,6 @@ function initializeFileManager(path, url) {
     if (savedView === 'list') {
         switchView('list');
     }
-    
-    // 🔥 确保上传功能在页面加载后设置
-    console.log('⏳ 等待DOM加载完成后设置上传功能');
 }
 
 // Elements - 这些在DOM加载后获取
@@ -101,29 +74,21 @@ function hasWritePermission() {
     const urlParams = new URLSearchParams(window.location.search);
     const currentPath = urlParams.get('path') || '';
     
-    console.log('=== Permission Check ===');
-    console.log('User Department:', userDepartment);
-    console.log('Current Path:', currentPath);
-    
     // 如果在根目录，不允许任何写操作
     if (!currentPath || currentPath === '') {
-        console.log('Result: NO (root directory)');
         return false;
     }
     
     // 提取路径中的第一级文件夹（部门文件夹）
     const pathParts = currentPath.split(/[\\\/]/).filter(p => p);
     if (pathParts.length === 0) {
-        console.log('Result: NO (empty path)');
         return false;
     }
     
     const targetDepartment = pathParts[0];
-    console.log('Target Department:', targetDepartment);
     
     // 只有用户部门与目标部门匹配时才允许写操作
     const hasPermission = userDepartment.toLowerCase() === targetDepartment.toLowerCase();
-    console.log('Result:', hasPermission ? 'YES' : 'NO');
     
     return hasPermission;
 }
@@ -133,9 +98,6 @@ function hasWritePermission() {
  */
 function checkAndUpdateButtonsVisibility() {
     const hasPermission = hasWritePermission();
-
-    console.log('=== Updating Button Visibility ===');
-    console.log('Has Write Permission:', hasPermission);
 
     // 获取所有需要权限的元素
     const uploadBtn = document.getElementById('uploadBtn');
@@ -163,7 +125,6 @@ function checkAndUpdateButtonsVisibility() {
         });
 
         deleteButtons.forEach(btn => btn.style.display = '');
-        console.log('Buttons enabled (user has write permission)');
     } else {
         // 无权限：隐藏所有写操作按钮和checkbox
         if (uploadBtn) uploadBtn.style.display = 'none';
@@ -177,7 +138,6 @@ function checkAndUpdateButtonsVisibility() {
         });
 
         deleteButtons.forEach(btn => btn.style.display = 'none');
-        console.log('Buttons disabled (user has no write permission)');
     }
 }
 
@@ -414,127 +374,103 @@ function handleFilesWithStructure(filesWithStructure) {
 
 // Upload files (传统方式)
 function handleFiles(fileList) {
-    console.log('📤 ========== handleFiles ==========');
-    console.log('文件数量:', fileList.length);
     
     if (fileList.length === 0) {
-        console.warn('❌ 没有文件');
         return;
     }
 
-    // 🔥 上传前从 URL 同步当前路径，避免使用过期值
+    // 上传前从 URL 同步当前路径，避免使用过期值
     const urlParams = new URLSearchParams(window.location.search);
     const pathFromUrl = urlParams.get('path') || '';
     if (pathFromUrl !== currentPath) {
-        console.log('📂 从 URL 同步路径:', pathFromUrl);
         currentPath = pathFromUrl;
     }
 
-    console.log('📋 文件列表:');
     for (let i = 0; i < fileList.length; i++) {
-        console.log(`  ${i + 1}. ${fileList[i].name} (${fileList[i].size} bytes)`);
     }
 
     const formData = new FormData();
     for (let i = 0; i < fileList.length; i++) {
         formData.append('files', fileList[i]);
     }
-
-    console.log('🌐 上传配置:');
-    console.log('  currentPath:', currentPath);
-    console.log('  uploadUrl:', uploadUrl);
     
     if (!uploadUrl) {
-        console.error('❌ uploadUrl 为空，无法上传');
+        console.error('uploadUrl is empty, cannot upload');
         showToast('Upload Error', 'Upload URL not configured', 'error');
         return;
     }
     
     const uploadFullUrl = uploadUrl + (uploadUrl.indexOf('?') >= 0 ? '&' : '?') + 'path=' + encodeURIComponent(currentPath);
-    console.log('  完整URL:', uploadFullUrl);
 
     if (uploadProgress) uploadProgress.classList.add('active');
     if (uploadProgressBar) uploadProgressBar.style.width = '0%';
 
-    console.log('📤 开始上传...');
     fetch(uploadFullUrl, {
         method: 'POST',
         body: formData
     })
         .then(response => {
-            console.log('📥 收到响应:', response.status, response.statusText);
             return response.json();
         })
         .then(data => {
-            console.log('📦 响应数据:', data);
             if (uploadProgress) uploadProgress.classList.remove('active');
 
             if (data.success) {
-                console.log('✅ 上传成功，刷新页面');
                 showToast('Success', 'Files uploaded successfully', 'success');
                 setTimeout(() => {
                     window.location.reload();
                 }, 500);
             } else {
-                console.error('❌ 上传失败:', data.message);
+                console.error('Upload error:', data.message);
                 showToast('Upload Failed', data.message, 'error');
             }
         })
         .catch(error => {
             if (uploadProgress) uploadProgress.classList.remove('active');
-            console.error('❌ Upload error:', error);
+            console.error('Upload error:', error);
             showToast('Upload Error', 'Failed to upload files', 'error');
         });
 }
 
-// 🔥 点击 Upload 时调用：同步路径并打开文件选择
+// 点击 Upload 时调用：同步路径并打开文件选择
 window.triggerUpload = function () {
     var urlParams = new URLSearchParams(window.location.search);
     var pathFromUrl = urlParams.get('path') || '';
     currentPath = pathFromUrl;
-    console.log('📤 triggerUpload: 当前路径已同步为', currentPath);
     var el = document.getElementById('fileInput');
     if (el) {
         el.click();
-        console.log('✓ 已触发文件选择');
     } else {
-        console.error('❌ 未找到 #fileInput');
+        console.error('not found #fileInput');
         showToast('Upload Error', 'File input not found', 'error');
     }
 };
 
 // Handle file input change
 function setupFileInput() {
-    console.log('🔧 setupFileInput 被调用');
     var inputEl = document.getElementById('fileInput');
     if (!inputEl) {
-        console.error('❌ fileInput 不存在！');
+        console.error('fileInput not found!');
         fileInput = null;
         return;
     }
     fileInput = inputEl;
 
-    // 🔥 克隆并替换以移除旧监听，避免重复绑定
+    // 克隆并替换以移除旧监听，避免重复绑定
     var newInput = inputEl.cloneNode(true);
     inputEl.parentNode.replaceChild(newInput, inputEl);
     fileInput = newInput;
 
-    console.log('✓ fileInput 找到，绑定 change 事件');
     fileInput.addEventListener('change', function (e) {
-        console.log('📂 文件输入 change 触发，数量:', this.files.length);
         if (this.files.length > 0) {
             handleFiles(this.files);
         }
         this.value = '';
     });
-    console.log('✅ setupFileInput 完成');
 }
 
 // Create folder
 function createFolder() {
-    console.log('===========================================');
-    console.log('=== CREATE FOLDER DEBUG (CLIENT) ===');
-    console.log('===========================================');
 
     const folderNameInput = document.getElementById('folderNameInput');
     if (!folderNameInput) {
@@ -543,11 +479,9 @@ function createFolder() {
     }
 
     let folderName = folderNameInput.value.trim();
-    console.log('Original folder name:', folderName);
 
     // 清理文件夹名：移除控制字符
     folderName = folderName.replace(/[\x00-\x1F\x7F]/g, '');
-    console.log('Cleaned folder name:', folderName);
 
     if (!folderName) {
         showToast('Invalid Input', 'Please enter a valid folder name', 'warning');
@@ -558,14 +492,6 @@ function createFolder() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlPath = urlParams.get('path') || '';
     
-    console.log('-------------------------------------------');
-    console.log('PATH CHECK:');
-    console.log('  Global currentPath:', currentPath);
-    console.log('  URL path parameter:', urlPath);
-    console.log('  Will use:', urlPath);
-    console.log('  Folder to create:', folderName);
-    console.log('-------------------------------------------');
-    
     // 使用URL中的path参数，而不是全局的currentPath
     const pathToUse = urlPath;
 
@@ -575,8 +501,6 @@ function createFolder() {
     params.append('folderName', folderName);
 
     const fullUrl = buildAppUrl('Home/CreateFolder') + '?' + params.toString();
-    console.log('Request URL:', fullUrl);
-    console.log('===========================================');
 
     fetch(fullUrl, {
         method: 'POST',
@@ -585,8 +509,6 @@ function createFolder() {
         }
     })
         .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -594,9 +516,6 @@ function createFolder() {
             return response.json();
         })
         .then(data => {
-            console.log('===========================================');
-            console.log('Server Response:', data);
-            console.log('===========================================');
             
             if (data.success) {
                 hideCreateFolderModal();
@@ -625,8 +544,6 @@ function confirmDelete() {
         body: formData
     })
         .then(response => {
-            console.log('Delete response status:', response.status);
-            console.log('Delete response ok:', response.ok);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -634,7 +551,6 @@ function confirmDelete() {
             return response.json();
         })
         .then(data => {
-            console.log('Delete response data:', data);
             
             if (data.success) {
                 hideDeleteModal();
@@ -656,11 +572,9 @@ function confirmDelete() {
 // 主要的刷新函数 - 直接重新加载页面
 function refreshFileListAPI() {
     if (isRefreshing) {
-        console.log('Already refreshing, skipping...');
         return;
     }
 
-    console.log('Refreshing file list by reloading page...');
     isRefreshing = true;
 
     // 直接重新加载当前页面
@@ -669,7 +583,6 @@ function refreshFileListAPI() {
 
 // 旧的方法 - 保留作为备用
 function refreshFileListWithoutReload() {
-    console.log('Using fallback: reload page...');
     window.location.reload();
 }
 
@@ -726,6 +639,8 @@ function toggleItemSelection(checkboxContainer) {
     const itemPath = listItem.dataset.path;
     const pathNorm = normPath(itemPath);
 
+    if (!pathNorm) return;
+
     if (listItem.classList.contains('selected')) {
         listItem.classList.remove('selected');
         if (checkbox) checkbox.classList.remove('checked');
@@ -757,7 +672,7 @@ function updateBatchActions() {
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     const selectAllHeader = document.getElementById('selectAllHeader');
 
-    // 🔥 只统计当前可见视图，避免重复计数
+    // 只统计当前可见视图，避免重复计数
     const listViewEl = document.getElementById('listView');
     const listVisible = listViewEl && window.getComputedStyle(listViewEl).display !== 'none';
     const gridSelected = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
@@ -813,7 +728,7 @@ function getTotalItemsCount() {
 
 // 全选/取消全选（适用于列表视图和网格视图）
 function toggleSelectAll() {
-    // 🔥 只按当前视图的 DOM 判断是否已全选，不依赖 header 的 class，避免误判导致只能按一次
+    // 只按当前视图的 DOM 判断是否已全选，不依赖 header 的 class，避免误判导致只能按一次
     const listViewEl = document.getElementById('listView');
     const isListVisible = listViewEl && window.getComputedStyle(listViewEl).display !== 'none';
 
@@ -848,7 +763,7 @@ function selectAllItems() {
     if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
     else window.selectedItemPaths.clear();
 
-    // 🔥 只操作当前可见视图，避免统计时拿到 0
+    // 只操作当前可见视图，避免统计时拿到 0
     const listViewEl = document.getElementById('listView');
     const isListVisible = listViewEl && window.getComputedStyle(listViewEl).display !== 'none';
 
@@ -957,36 +872,27 @@ function hideDeleteModal() {
 }
 
 function showBatchDeleteModal(count) {
-    console.log('📋 [site.js] 显示批量删除模态框，传入数量:', count);
     const modal = document.getElementById('batchDeleteModal');
     const countElement = document.getElementById('batchDeleteCount');
 
-    // 🔥 始终以 DOM 为准：未传 count 时从当前视图统计，避免显示 1 而非实际选中数
+    // 始终以 DOM 为准：未传 count 时从当前视图统计，避免显示 1 而非实际选中数
     let actualCount = count;
     if (actualCount === undefined || actualCount === null || actualCount < 0) {
         const gridSel = document.querySelectorAll('#gridView .fm-grid-checkbox.selected').length;
         const listSel = document.querySelectorAll('#listView .fm-list-checkbox.selected').length;
         actualCount = gridSel + listSel;
-        console.log('📋 从 DOM 统计数量:', actualCount, '(grid:', gridSel, ', list:', listSel, ')');
     }
-    console.log('📋 实际使用数量:', actualCount);
 
     if (countElement) {
         countElement.textContent = actualCount;
-        console.log('✓ 更新 batchDeleteCount 为:', actualCount);
-    } else {
-        console.warn('⚠️ 未找到 batchDeleteCount 元素');
-    }
+    } 
 
     if (modal) {
         modal.style.display = 'flex';
         setTimeout(() => {
             modal.classList.add('active');
         }, 10);
-        console.log('✓ 模态框已显示');
-    } else {
-        console.warn('⚠️ 未找到 batchDeleteModal 元素');
-    }
+    } 
 }
 
 // 隐藏批量删除确认模态框
@@ -1000,7 +906,7 @@ function hideBatchDeleteModal() {
     }
 }
 
-// 确认批量删除 - 🔥 这个函数已被 Index.cshtml 中的版本替代
+// 确认批量删除 - 这个函数已被 Index.cshtml 中的版本替代
 // 保留此函数以防向后兼容，但不再导出到 window
 function confirmBatchDelete_old() {
     const batchDeleteBtn = document.getElementById('batchDeleteBtn');
@@ -1280,7 +1186,6 @@ function hideCreateFolderModal() {
 
 // View switching
 function switchView(view) {
-    console.log('🔄 切换视图到:', view);
     
     const gridView = document.getElementById('gridView');
     const listView = document.getElementById('listView');
@@ -1293,9 +1198,8 @@ function switchView(view) {
         if (gridBtn) gridBtn.classList.add('active');
         if (listBtn) listBtn.classList.remove('active');
         
-        // 🔥 使用统一的键名
+        // 使用统一的键名
         localStorage.setItem('spaceHSG_viewMode', 'grid');
-        console.log('✅ Grid View 已保存到 localStorage');
 
         // 初始化网格视图的分页和搜索，然后按路径恢复选中状态
         setTimeout(() => {
@@ -1312,20 +1216,19 @@ function switchView(view) {
         if (listBtn) listBtn.classList.add('active');
         if (gridBtn) gridBtn.classList.remove('active');
         
-        // 🔥 使用统一的键名
+        // 使用统一的键名
         localStorage.setItem('spaceHSG_viewMode', 'list');
-        console.log('✅ List View 已保存到 localStorage');
 
         // 初始化列表视图的分页和搜索，然后按路径恢复选中状态
         setTimeout(() => {
             if (typeof window.initializeListViewFeatures === 'function') {
                 window.initializeListViewFeatures();
             }
-            // 🔥 Grid→List：强制按 list 应用选中，避免 isCurrentViewList() 时机问题
+            // Grid→List：强制按 list 应用选中，避免 isCurrentViewList() 时机问题
             if (typeof window.applySelectionToCurrentView === 'function') {
                 window.applySelectionToCurrentView('list');
             }
-            // 🔥 再延迟应用一次，确保 list DOM 与 checkbox 绑定完成后再恢复勾选
+            // 再延迟应用一次，确保 list DOM 与 checkbox 绑定完成后再恢复勾选
             setTimeout(function() {
                 if (typeof window.applySelectionToCurrentView === 'function') {
                     window.applySelectionToCurrentView('list');
@@ -1340,7 +1243,6 @@ function navigateToItem(url) {
     // 从URL中提取路径以便调试
     const urlObj = new URL(url, window.location.origin);
     const pathParam = urlObj.searchParams.get('path');
-    console.log('Navigating to:', url, 'Path:', pathParam);
     window.location.href = url;
 }
 
@@ -1374,23 +1276,15 @@ function showDeleteModalFromElement(button) {
 
 // ============== 页面加载完成后初始化 ==============
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('📦 ========== DOMContentLoaded ==========');
-    console.log('File Manager Initializing...');
 
     // 初始化DOM元素
     initDomElements();
-    console.log('✓ DOM元素已初始化');
-    console.log('  dropOverlay:', dropOverlay ? '✓' : '✗');
-    console.log('  fileInput:', fileInput ? '✓' : '✗');
-    console.log('  uploadProgress:', uploadProgress ? '✓' : '✗');
 
     // 设置拖拽功能
     setupDragAndDrop();
-    console.log('✓ 拖拽功能已设置');
 
     // 设置文件输入
     setupFileInput();
-    console.log('✓ 文件输入已设置');
 
     // 设置其他事件监听器
     document.addEventListener('keydown', function (e) {
@@ -1431,22 +1325,32 @@ document.addEventListener('DOMContentLoaded', function () {
     if (yearElement) {
         yearElement.textContent = new Date().getFullYear();
     }
-
-    console.log('File Manager Initialized Successfully');
 });
 
-function toggleGridItemSelection(gridItem, checkbox) {
-    const itemPath = gridItem.dataset.path;
-    const pathNorm = normPath(itemPath);
+function toggleGridItemSelection(gridItemOrCheckbox, checkboxArg) {
+    var gridItem = gridItemOrCheckbox && gridItemOrCheckbox.dataset && gridItemOrCheckbox.dataset.path != null
+        ? gridItemOrCheckbox
+        : gridItemOrCheckbox && gridItemOrCheckbox.closest && gridItemOrCheckbox.closest('.fm-grid-item');
+    var checkbox = (checkboxArg && checkboxArg.classList) ? checkboxArg : (gridItem && gridItem.querySelector && gridItem.querySelector('.fm-grid-checkbox'));
+    if (!gridItem || !gridItem.dataset || gridItem.dataset.path == null) return;
+    var itemPath = gridItem.dataset.path;
+    var pathNorm = normPath(itemPath);
+    if (!pathNorm) return;
 
     if (gridItem.classList.contains('selected')) {
         gridItem.classList.remove('selected');
-        if (checkbox) checkbox.classList.remove('checked');
+        if (checkbox) {
+            checkbox.classList.remove('checked');
+            checkbox.classList.remove('selected');
+        }
         selectedItems.delete(itemPath);
         if (window.selectedItemPaths) window.selectedItemPaths.delete(pathNorm);
     } else {
         gridItem.classList.add('selected');
-        if (checkbox) checkbox.classList.add('checked');
+        if (checkbox) {
+            checkbox.classList.add('checked');
+            checkbox.classList.add('selected');
+        }
         selectedItems.add(itemPath);
         if (!window.selectedItemPaths) window.selectedItemPaths = new Set();
         window.selectedItemPaths.add(pathNorm);
@@ -1514,7 +1418,7 @@ window.hideDeleteModal = hideDeleteModal;
 window.batchDelete = batchDelete;
 window.showBatchDeleteModal = showBatchDeleteModal;
 window.hideBatchDeleteModal = hideBatchDeleteModal;
-// 🔥 不再导出 confirmBatchDelete，使用 Index.cshtml 中的版本
+// 不再导出 confirmBatchDelete，使用 Index.cshtml 中的版本
 // window.confirmBatchDelete = confirmBatchDelete;
 window.showLogoutModal = showLogoutModal;
 window.hideLogoutModal = hideLogoutModal;

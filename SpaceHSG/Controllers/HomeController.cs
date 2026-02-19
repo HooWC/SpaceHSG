@@ -95,10 +95,6 @@ namespace SpaceHSG.Controllers
                 ViewBag.UserDisplayName = HttpContext.Session.GetString("DisplayName") ?? "";
                 ViewBag.UserRole = HttpContext.Session.GetString("Role") ?? "User";
 
-                //Console.WriteLine($"ViewBag.RelativePath set to: '{path}'");
-                //Console.WriteLine($"ViewBag.UserDepartment set to: '{ViewBag.UserDepartment}'");
-                //Console.WriteLine($"=== END INDEX DEBUG ===");
-
                 return View();
             }
             catch (Exception ex)
@@ -502,8 +498,6 @@ namespace SpaceHSG.Controllers
                 if (!HasWritePermission(path))
                 {
                     var userDept = HttpContext.Session.GetString("Department");
-                    //Console.WriteLine($"ERROR: Permission denied for user department: {userDept}");
-                    //Console.WriteLine($"===========================================");
                     return Json(new { 
                         success = false, 
                         message = $"Access denied. You can only create folders in your department folder ({userDept})." 
@@ -512,27 +506,20 @@ namespace SpaceHSG.Controllers
 
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
-                    //Console.WriteLine($"ERROR: Folder name is empty or whitespace");
-                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder name cannot be empty." });
                 }
 
                 // 清理文件夹名：移除控制字符和无效字符
                 folderName = CleanFileName(folderName);
-                //Console.WriteLine($"Cleaned folderName: '{folderName}'");
 
                 if (string.IsNullOrWhiteSpace(folderName))
                 {
-                    //Console.WriteLine($"ERROR: Cleaned folder name is empty");
-                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder name contains only invalid characters." });
                 }
 
                 // Validate folder name
                 if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 {
-                    //Console.WriteLine($"ERROR: Folder name contains invalid characters");
-                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder name contains invalid characters." });
                 }
 
@@ -540,46 +527,22 @@ namespace SpaceHSG.Controllers
                 if (!string.IsNullOrEmpty(path))
                 {
                     path = CleanPath(path);
-                    //Console.WriteLine($"Cleaned path: '{path}'");
-                }
-                else
-                {
-                    //Console.WriteLine($"Path is null or empty, will use basePath");
                 }
 
                 string targetDirectory = ValidateAndNormalizePath(path);
 
-                // 使用验证方法获取目标目录
-                //Console.WriteLine($"-------------------------------------------");
-                //Console.WriteLine($"Calling ValidateAndNormalizePath with: '{path}'");
-                //Console.WriteLine($"Target directory returned: '{targetDirectory}'");
-                //Console.WriteLine($"basePath for comparison: '{basePath}'");
-                //Console.WriteLine($"Are they equal?: {targetDirectory == basePath}");
-                //Console.WriteLine($"-------------------------------------------");
-
                 var newFolderPath = Path.Combine(targetDirectory, folderName);
-                //Console.WriteLine($"New folder will be created at: '{newFolderPath}'");
 
                 // Check if folder already exists
                 if (Directory.Exists(newFolderPath))
                 {
-                    //Console.WriteLine($"-------------------------------------------");
-                    //Console.WriteLine($"ERROR: Folder already exists");
-                    //Console.WriteLine($"  Existing folder: '{newFolderPath}'");
-                    //Console.WriteLine($"===========================================");
                     return Json(new { success = false, message = "Folder already exists." });
                 }
 
                 // Create the folder
-                //Console.WriteLine($"-------------------------------------------");
-                //Console.WriteLine($"Creating directory...");
                 Directory.CreateDirectory(newFolderPath);
-                //Console.WriteLine($"SUCCESS: Folder created at: '{newFolderPath}'");
 
                 var relativePath = GetRelativePath(newFolderPath, basePath);
-                //Console.WriteLine($"Relative path for new folder: '{relativePath}'");
-                //Console.WriteLine($"===========================================");
-                //Console.WriteLine($"");
 
                 return Ok(new
                 {
@@ -590,13 +553,10 @@ namespace SpaceHSG.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                //Console.WriteLine($"UnauthorizedAccessException: {ex.Message}");
                 return Forbid();
             }
             catch (Exception ex)
             {
-                //Console.WriteLine($"Exception in CreateFolder: {ex}");
-                //Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return Json(new { success = false, message = $"Create folder error: {ex.Message}" });
             }
         }
@@ -613,10 +573,6 @@ namespace SpaceHSG.Controllers
                 if (!char.IsControl(c) && c != 127) // 保留非控制字符
                 {
                     cleaned.Append(c);
-                }
-                else
-                {
-                    //Console.WriteLine($"Removed control character: {(int)c} from filename");
                 }
             }
 
@@ -639,10 +595,6 @@ namespace SpaceHSG.Controllers
                 if (!char.IsControl(c) && c != 127) // 保留非控制字符
                 {
                     cleaned.Append(c);
-                }
-                else
-                {
-                    //Console.WriteLine($"Removed control character: {(int)c} from path");
                 }
             }
 
@@ -763,21 +715,15 @@ namespace SpaceHSG.Controllers
         // Helper method: Get relative path
         private string GetRelativePath(string fullPath, string basePath)
         {
-            //Console.WriteLine($"GetRelativePath called with:");
-            //Console.WriteLine($"  fullPath: '{fullPath}'");
-            //Console.WriteLine($"  basePath: '{basePath}'");
 
             if (fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
             {
                 var relative = fullPath.Substring(basePath.Length).TrimStart(System.IO.Path.DirectorySeparatorChar);
                 var result = string.IsNullOrEmpty(relative) ? RootPath : relative;
 
-                //Console.WriteLine($"  Result: '{result}'");
                 return result;
             }
 
-            //Console.WriteLine($"  ERROR: fullPath does not start with basePath");
-            //Console.WriteLine($"  Returning fullPath: '{fullPath}'");
             return fullPath;
         }
 
@@ -830,32 +776,24 @@ namespace SpaceHSG.Controllers
         // 辅助方法：验证和规范化路径
         private string ValidateAndNormalizePath(string relativePath)
         {
-            //Console.WriteLine($"ValidateAndNormalizePath called with: '{relativePath}'");
-
             if (string.IsNullOrEmpty(relativePath) || relativePath == RootPath)
             {
-                //Console.WriteLine($"Returning basePath: '{basePath}'");
                 return basePath;
             }
 
             var decodedPath = Uri.UnescapeDataString(relativePath);
-            //Console.WriteLine($"After URL decoding: '{decodedPath}'");
 
             var fullPath = Path.Combine(basePath, decodedPath);
-            //Console.WriteLine($"Combined path: '{fullPath}'");
 
             // 规范化路径
             fullPath = Path.GetFullPath(fullPath);
-            //Console.WriteLine($"After GetFullPath: '{fullPath}'");
 
             // 安全检查：确保路径在basePath内
             if (!fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
             {
-                //Console.WriteLine($"SECURITY VIOLATION: {fullPath} does not start with {basePath}");
                 throw new UnauthorizedAccessException("Access denied: Path is outside the authorized directory.");
             }
 
-            //Console.WriteLine($"Returning normalized path: '{fullPath}'");
             return fullPath;
         }
 
@@ -1240,27 +1178,19 @@ namespace SpaceHSG.Controllers
             var pathParts = relativePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             if (pathParts.Length == 0)
             {
-                //Console.WriteLine("Result: DENIED (empty path)");
-                //Console.WriteLine($"=====================================");
                 return false;
             }
 
             var targetDepartment = pathParts[0];
-            //Console.WriteLine($"Target Department: {targetDepartment}");
 
             // 检查目标部门是否是有效的部门
             if (!validDepartments.Contains(targetDepartment, StringComparer.OrdinalIgnoreCase))
             {
-                //Console.WriteLine($"Result: DENIED (invalid department folder)");
-                //Console.WriteLine($"=====================================");
                 return false;
             }
 
             // 只有用户部门与目标部门匹配时才允许写操作
             bool hasPermission = userDepartment.Equals(targetDepartment, StringComparison.OrdinalIgnoreCase);
-            
-            //Console.WriteLine($"Result: {(hasPermission ? "ALLOWED" : "DENIED")}");
-            //Console.WriteLine($"=====================================");
             
             return hasPermission;
         }
@@ -1285,8 +1215,6 @@ namespace SpaceHSG.Controllers
             return pathParts.Length > 0 ? pathParts[0] : null;
         }
     }
-
-
 
     // Breadcrumb model
     public class Breadcrumb
