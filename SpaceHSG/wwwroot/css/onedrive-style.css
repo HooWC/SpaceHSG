@@ -1194,7 +1194,6 @@ a {
 
 #selectedCount #selectedNumber {
     font-weight: 600;
-    color: var(--text-primary);
 }
 
 /* 列表视图全选复选框 */
